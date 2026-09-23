@@ -82,7 +82,7 @@ dolphin_check_std_version("LLVM_libc++" _LIBCPP_VERSION ${libc++_min_version})
 # Name of the Dolphin distributor. If you redistribute Dolphin builds (forks,
 # unofficial builds) please consider identifying your distribution with a
 # unique name here.
-set(DISTRIBUTOR "None" CACHE STRING "Name of the distributor.")
+set(DISTRIBUTOR "nvwii" CACHE STRING "Name of the distributor.")
 
 set(DOLPHIN_DEFAULT_UPDATE_TRACK "" CACHE STRING "Name of the default update track. If empty, disables auto-update.")
 
@@ -116,7 +116,7 @@ option(ENABLE_TESTS "Enables building the unit tests" ON)
 option(ENABLE_VULKAN "Enables vulkan video backend" ON)
 option(USE_DISCORD_PRESENCE "Enables Discord Rich Presence, show the current game on Discord" ON)
 option(USE_MGBA "Enables GBA controllers emulation using libmgba" ON)
-option(ENABLE_AUTOUPDATE "Enables support for automatic updates" ON)
+option(ENABLE_AUTOUPDATE "Enables support for automatic updates" OFF)
 option(USE_RETRO_ACHIEVEMENTS "Enables integration with retroachievements.org" ON)
 option(ENABLE_CCACHE "Enables CCache compiler cache" OFF)
 
@@ -126,7 +126,7 @@ option(ENABLE_CCACHE "Enables CCache compiler cache" OFF)
 #    launch).
 #  * The Dolphin team relies on the data in order to understand the behavior
 #    of our software in the wild.
-option(ENABLE_ANALYTICS "Enables opt-in Analytics collection" ON)
+option(ENABLE_ANALYTICS "Enables opt-in Analytics collection" OFF)
 
 option(ENCODE_FRAMEDUMPS "Encode framedumps in AVI format" ON)
 
@@ -858,13 +858,13 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD|OpenBSD")
 endif()
 
 # packaging information
-set(CPACK_PACKAGE_NAME "dolphin-emu")
-set(CPACK_PACKAGE_VENDOR "Dolphin Team")
+set(CPACK_PACKAGE_NAME "nvwii")
+set(CPACK_PACKAGE_VENDOR "nvwii")
 set(CPACK_PACKAGE_VERSION_MAJOR ${DOLPHIN_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${DOLPHIN_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${DOLPHIN_VERSION_PATCH})
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/Data/cpack_package_description.txt)
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A GameCube and Wii emulator")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "nvwii - a custom Wii and GameCube emulator distribution")
 
 set(CPACK_RPM_PACKAGE_GROUP System/Emulators/Other)
 set(CPACK_RPM_PACKAGE_LICENSE GPL-2.0)
