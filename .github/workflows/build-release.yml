@@ -29,7 +29,7 @@ jobs:
           submodules: recursive
       - name: Configure
         shell: pwsh
-        run: cmake -S . -B Build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DENABLE_TESTS=OFF -DENABLE_ANALYTICS=OFF -DENABLE_AUTOUPDATE=OFF -DDISTRIBUTOR=nvwii
+        run: cmake -S . -B Build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DENABLE_TESTS=OFF -DENABLE_ANALYTICS=OFF -DENABLE_AUTOUPDATE=OFF -DDISTRIBUTOR=nvwii -DENABLE_LTO=ON
       - name: Build
         shell: pwsh
         run: cmake --build Build --config ${{ env.BUILD_TYPE }} --parallel
@@ -120,7 +120,7 @@ jobs:
             nvwii-macos-arm64.zip
             nvwii-macos-x86_64.zip
       - name: Publish tagged/manual release
-        if: ${{ github.event_name != 'schedule' }}
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
