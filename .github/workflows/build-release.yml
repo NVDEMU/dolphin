@@ -55,7 +55,7 @@ jobs:
       - name: Configure
         run: |
           export PATH="/opt/homebrew/opt/qt@6/bin:$PATH"
-          cmake -S . -B Build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DENABLE_TESTS=OFF -DENABLE_ANALYTICS=OFF -DENABLE_AUTOUPDATE=OFF -DDISTRIBUTOR=nvwii -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@6"
+          cmake -S . -B Build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DENABLE_TESTS=OFF -DENABLE_ANALYTICS=OFF -DENABLE_AUTOUPDATE=OFF -DDISTRIBUTOR=nvwii -DENABLE_LTO=ON -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@6"
       - name: Build
         run: cmake --build Build --parallel
       - name: Package
@@ -79,7 +79,7 @@ jobs:
       - name: Configure
         run: |
           export PATH="/usr/local/opt/qt@6/bin:$PATH"
-          cmake -S . -B Build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DENABLE_TESTS=OFF -DENABLE_ANALYTICS=OFF -DENABLE_AUTOUPDATE=OFF -DDISTRIBUTOR=nvwii -DCMAKE_PREFIX_PATH="/usr/local/opt/qt@6"
+          cmake -S . -B Build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DENABLE_TESTS=OFF -DENABLE_ANALYTICS=OFF -DENABLE_AUTOUPDATE=OFF -DDISTRIBUTOR=nvwii -DENABLE_LTO=ON -DCMAKE_PREFIX_PATH="/usr/local/opt/qt@6"
       - name: Build
         run: cmake --build Build --parallel
       - name: Package
