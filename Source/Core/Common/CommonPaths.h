@@ -12,13 +12,13 @@
 
 // The normal user directory
 #ifdef _WIN32
-#define NORMAL_USER_DIR "Dolphin Emulator"
+#define NORMAL_USER_DIR "nvwii"
 #elif defined(__APPLE__)
-#define NORMAL_USER_DIR "Library/Application Support/Dolphin"
+#define NORMAL_USER_DIR "Library/Application Support/nvwii"
 #elif defined(ANDROID)
 #define NORMAL_USER_DIR "/sdcard/dolphin-emu"
 #else
-#define NORMAL_USER_DIR "dolphin-emu"
+#define NORMAL_USER_DIR "nvwii"
 #endif
 
 // The portable user directory
