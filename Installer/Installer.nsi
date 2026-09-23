@@ -13,9 +13,9 @@
   !error "PRODUCT_VERSION must be defined"
 !endif
 
-!define PRODUCT_NAME "Dolphin"
-!define PRODUCT_PUBLISHER "Dolphin Team"
-!define PRODUCT_WEB_SITE "https://dolphin-emu.org/"
+!define PRODUCT_NAME "nvwii"
+!define PRODUCT_PUBLISHER "nvwii"
+!define PRODUCT_WEB_SITE "https://github.com/NVDEMU/dolphin"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_NAME}.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
@@ -41,7 +41,7 @@ ShowUnInstDetails show
 !include "MUI2.nsh"
 
 ; MUI Settings
-!define MUI_ICON "Dolphin.ico"
+!define MUI_ICON "nvwii.ico"
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
 
 ; License page
@@ -180,7 +180,7 @@ Section "Base"
   ; Create start menu and desktop shortcuts
   ; This needs to be done after Dolphin.exe is copied
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$DisplayName.lnk" "$INSTDIR\Dolphin.exe"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$DisplayName.lnk" "$INSTDIR\nvwii.exe"
   CreateShortCut "$DESKTOP\$DisplayName.lnk" "$INSTDIR\Dolphin.exe"
 
   ; ??
@@ -210,7 +210,7 @@ Section -Post
   ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
   IntFmt $0 "0x%08X" $0
   WriteRegDWORD SHCTX "${PRODUCT_UNINST_KEY}" "EstimatedSize" "$0"
-  WriteRegStr SHCTX "${PRODUCT_UNINST_KEY}" "Comments" "GameCube and Wii emulator"
+  WriteRegStr SHCTX "${PRODUCT_UNINST_KEY}" "Comments" "nvwii - Wii and GameCube emulator"
 SectionEnd
 
 Section Uninstall
