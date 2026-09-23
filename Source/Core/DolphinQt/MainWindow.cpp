@@ -7,11 +7,15 @@
 #include <QCloseEvent>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QFrame>
+#include <QHBoxLayout>
 #include <QDir>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFileInfo>
 #include <QIcon>
+#include <QLabel>
+#include <QPushButton>
 #include <QMimeData>
 #include <QStackedWidget>
 #include <QStyleHints>
@@ -217,8 +221,130 @@ MainWindow::MainWindow(Core::System& system, std::unique_ptr<BootParameters> boo
                        const std::string& movie_path)
     : QMainWindow(nullptr), m_system(system)
 {
-  setWindowTitle(QString::fromStdString(Common::GetScmRevStr()));
+  setWindowTitle(QStringLiteral("nvwii"));
   setWindowIcon(Resources::GetAppIcon());
+  setMinimumSize(1080, 680);
+
+  qApp->setStyleSheet(QStringLiteral(R"(
+    QMainWindow, QWidget {
+      background: #0d1117;
+      color: #f5f7fa;
+    }
+    QMenuBar {
+      background: #111820;
+      color: #dce3eb;
+      border-bottom: 1px solid #27313d;
+      padding: 4px 6px;
+    }
+    QMenuBar::item {
+      background: transparent;
+      padding: 7px 10px;
+      border-radius: 4px;
+    }
+    QMenuBar::item:selected {
+      background: #222b36;
+    }
+    QMenu {
+      background: #151b23;
+      color: #f5f7fa;
+      border: 1px solid #2a3441;
+    }
+    QMenu::item {
+      padding: 8px 26px 8px 12px;
+    }
+    QMenu::item:selected {
+      background: #db2929;
+    }
+    QToolBar {
+      background: #111820;
+      border: none;
+      border-bottom: 1px solid #27313d;
+      spacing: 5px;
+      padding: 6px;
+    }
+    QToolButton, QPushButton {
+      background: #1a222d;
+      color: #f5f7fa;
+      border: 1px solid #2a3441;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    QToolButton:hover, QPushButton:hover {
+      background: #222c38;
+      border-color: #49586a;
+    }
+    QToolButton:pressed, QPushButton:pressed {
+      background: #db2929;
+      border-color: #db2929;
+    }
+    QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+      background: #131a22;
+      color: #f5f7fa;
+      border: 1px solid #2a3441;
+      border-radius: 6px;
+      padding: 7px 9px;
+      selection-background-color: #db2929;
+    }
+    QTabBar::tab {
+      background: #151b23;
+      color: #aeb7c4;
+      border: 1px solid #2a3441;
+      padding: 7px 11px;
+    }
+    QTabBar::tab:selected {
+      background: #db2929;
+      color: #ffffff;
+    }
+    QDockWidget {
+      titlebar-close-icon: none;
+      titlebar-normal-icon: none;
+      color: #f5f7fa;
+    }
+    QScrollBar:vertical, QScrollBar:horizontal {
+      background: #0f141b;
+      border: none;
+      width: 11px;
+      height: 11px;
+    }
+    QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+      background: #33404f;
+      border-radius: 5px;
+      min-height: 25px;
+      min-width: 25px;
+    }
+    QFrame#NVWiiHeader {
+      background: #151b23;
+      border: 1px solid #2a3441;
+      border-left: 4px solid #db2929;
+      border-radius: 8px;
+    }
+    QLabel#NVWiiBrand {
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    QLabel#NVWiiSubtitle {
+      color: #aeb7c4;
+      font-size: 12px;
+    }
+    QLabel#NVWiiStatus {
+      color: #db2929;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    QPushButton#NVWiiAction {
+      background: #1a222d;
+      border: 1px solid #344252;
+      padding: 9px 14px;
+      font-weight: 600;
+    }
+    QPushButton#NVWiiPrimaryAction {
+      background: #db2929;
+      border: 1px solid #db2929;
+      padding: 9px 14px;
+      font-weight: 700;
+    }
+  )));
   setUnifiedTitleAndToolBarOnMac(true);
   setAcceptDrops(true);
   setAttribute(Qt::WA_NativeWindow);
@@ -739,6 +865,50 @@ void MainWindow::ConnectStack()
   auto* layout = new QVBoxLayout;
   widget->setLayout(layout);
 
+  auto* header = new QFrame(widget);
+  header->setObjectName(QStringLiteral("NVWiiHeader"));
+  auto* header_layout = new QHBoxLayout(header);
+  header_layout->setContentsMargins(18, 12, 12, 12);
+  header_layout->setSpacing(14);
+
+  auto* logo = new QLabel(header);
+  logo->setFixedSize(56, 56);
+  logo->setPixmap(Resources::GetAppIcon().pixmap(56, 56));
+  logo->setScaledContents(true);
+
+  auto* identity = new QWidget(header);
+  auto* identity_layout = new QVBoxLayout(identity);
+  identity_layout->setContentsMargins(0, 0, 0, 0);
+  identity_layout->setSpacing(2);
+
+  auto* brand = new QLabel(QStringLiteral("nvwii"), identity);
+  brand->setObjectName(QStringLiteral("NVWiiBrand"));
+  auto* subtitle = new QLabel(QStringLiteral("Modern Wii & GameCube emulation"), identity);
+  subtitle->setObjectName(QStringLiteral("NVWiiSubtitle"));
+  auto* status = new QLabel(QStringLiteral("READY"), identity);
+  status->setObjectName(QStringLiteral("NVWiiStatus"));
+  identity_layout->addWidget(brand);
+  identity_layout->addWidget(subtitle);
+  identity_layout->addWidget(status);
+
+  header_layout->addWidget(logo);
+  header_layout->addWidget(identity, 1);
+
+  auto add_action = [this, header](const QString& text, auto slot, bool primary) {
+    auto* button = new QPushButton(text, header);
+    button->setObjectName(primary ? QStringLiteral("NVWiiPrimaryAction")
+                                   : QStringLiteral("NVWiiAction"));
+    connect(button, &QPushButton::clicked, this, slot);
+    header->layout()->addWidget(button);
+  };
+
+  add_action(tr("Open Game"), &MainWindow::Open, true);
+  add_action(tr("Graphics"), &MainWindow::ShowGraphicsWindow, false);
+  add_action(tr("Controllers"), &MainWindow::ShowControllersWindow, false);
+  add_action(tr("Settings"), &MainWindow::ShowSettingsWindow, false);
+
+  layout->addWidget(header);
+  layout->addSpacing(8);
   layout->addWidget(m_game_list);
   layout->addWidget(m_search_bar);
   layout->addWidget(m_game_count);
