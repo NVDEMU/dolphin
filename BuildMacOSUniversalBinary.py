@@ -67,13 +67,13 @@ DEFAULT_CONFIG = {
     "run_unit_tests": False,
 
     # Whether our autoupdate functionality is enabled or not.
-    "autoupdate": True,
+    "autoupdate": False,
 
     # Whether CCache is used for the build or not.
     "ccache": False,
 
     # The distributor for this build.
-    "distributor": "None"
+    "distributor": "nvwii"
 }
 
 # Architectures to build for. This is explicitly left out of the command line
@@ -344,14 +344,14 @@ def build(config):
             "-t",
             "-e", "preserve",
             config["codesign_identity"],
-            dst_app+"/Dolphin.app/Contents/Helpers/Dolphin Updater.app"])
+            dst_app+"/nvwii.app/Contents/Helpers/nvwii Updater.app"])
 
     subprocess.check_call([
         "../Tools/mac-codesign.sh",
         "-t",
         "-e", "preserve",
         config["codesign_identity"],
-        dst_app+"/Dolphin.app"])
+        dst_app+"/nvwii.app"])
 
     print("Built Universal Binary successfully!")
 
