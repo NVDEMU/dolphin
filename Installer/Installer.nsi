@@ -22,7 +22,7 @@
 !define BINARY_SOURCE_DIR "..\Binary\${DOLPHIN_ARCH}"
 
 Name "${PRODUCT_NAME}"
-OutFile "dolphin-${DOLPHIN_ARCH}-${PRODUCT_VERSION}.exe"
+OutFile "nvwii-${DOLPHIN_ARCH}-${PRODUCT_VERSION}.exe"
 SetCompressor /SOLID lzma
 ShowInstDetails show
 ShowUnInstDetails show
@@ -41,7 +41,7 @@ ShowUnInstDetails show
 !include "MUI2.nsh"
 
 ; MUI Settings
-!define MUI_ICON "nvwii.ico"
+!define MUI_ICON "..\Installer\Dolphin.ico"
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
 
 ; License page
@@ -178,10 +178,10 @@ Section "Base"
   !insertmacro UPDATE_DISPLAYNAME
 
   ; Create start menu and desktop shortcuts
-  ; This needs to be done after Dolphin.exe is copied
+  ; This needs to be done after nvwii.exe is copied
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$DisplayName.lnk" "$INSTDIR\nvwii.exe"
-  CreateShortCut "$DESKTOP\$DisplayName.lnk" "$INSTDIR\Dolphin.exe"
+  CreateShortCut "$DESKTOP\$DisplayName.lnk" "$INSTDIR\nvwii.exe"
 
   ; ??
   SetOutPath "$TEMP"
