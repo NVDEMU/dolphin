@@ -174,9 +174,9 @@ int main(int argc, char* argv[])
   setenv("QT_QPA_PLATFORM", "xcb", replace_qt_platform);
 #endif
 
-  QCoreApplication::setOrganizationName(QStringLiteral("Dolphin Emulator"));
-  QCoreApplication::setOrganizationDomain(QStringLiteral("dolphin-emu.org"));
-  QCoreApplication::setApplicationName(QStringLiteral("dolphin-emu"));
+  QCoreApplication::setOrganizationName(QStringLiteral("nvwii"));
+  QCoreApplication::setOrganizationDomain(QStringLiteral("nvwii.org"));
+  QCoreApplication::setApplicationName(QStringLiteral("nvwii"));
 
   // QApplication will parse arguments and remove any it recognizes as targeting Qt
   QApplication app(argc, argv);
