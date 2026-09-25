@@ -49,8 +49,8 @@ void Updater::OnUpdateAvailable(const NewVersionInformation& info)
     dialog->setWindowTitle(tr("Update available"));
 
     auto* label = new QLabel(
-        tr("<h2>A new version of this Dolphin fork is available!</h2>"
-           "Dolphin %1 is available on GitHub.<br>"
+        tr("<h2>A new version of Fin is available!</h2>"
+           "Fin %1 is available on GitHub.<br>"
            "You are running %2.<br><br>"
            "<h4>Release Notes:</h4>")
             .arg(QString::fromStdString(info.new_shortrev))
