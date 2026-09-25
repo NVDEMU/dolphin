@@ -223,7 +223,7 @@ void AutoUpdateChecker::CheckForUpdate(std::string_view update_track,
   const Common::HttpRequest::Headers headers = {
       {"Accept", "application/vnd.github+json"},
       {"X-GitHub-Api-Version", "2022-11-28"},
-      {"User-Agent", "Dolphin-NVDEMU-Updater"},
+      {"User-Agent", "Fin-NVDEMU-Updater"},
   };
 
   const std::string url = GetUpdateServerUrl();
