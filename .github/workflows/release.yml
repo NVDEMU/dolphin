@@ -86,7 +86,7 @@ jobs:
             -DCMAKE_CONFIGURATION_TYPES=Release `
             -DENABLE_AUTOUPDATE=ON `
             -DDOLPHIN_DEFAULT_UPDATE_TRACK=github `
-            -DDISTRIBUTOR=NVDEMU/dolphin
+            -DDISTRIBUTOR=Fin
 
       - name: Build
         shell: pwsh
@@ -117,7 +117,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
-          path: Dolphin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z
+          path: Fin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z
           if-no-files-found: error
           retention-days: 14
 
@@ -173,14 +173,14 @@ jobs:
         run: |
           test -d "universal/Fin.app"
           test -x "universal/Fin.app/Contents/MacOS/DolphinQt"
-          /usr/bin/file "universal/Fin.app/Contents/MacOS/Dolphin"
-          /usr/bin/lipo -info "universal/Dolphin.app/Contents/MacOS/Dolphin"
-          /usr/bin/codesign --verify --deep --strict --verbose=2 "universal/Dolphin.app"
+          /usr/bin/file "universal/Fin.app/Contents/MacOS/DolphinQt"
+          /usr/bin/lipo -info "universal/Fin.app/Contents/MacOS/DolphinQt"
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "universal/Fin.app"
 
       - name: Package .app
         run: |
           ditto -c -k --sequesterRsrc --keepParent \
-            "universal/Dolphin.app" \
+            "universal/Fin.app" \
             "Fin-${{ env.RELEASE_TAG }}-macOS-universal.zip"
 
       - name: Upload macOS artifact
@@ -188,8 +188,8 @@ jobs:
         with:
           name: macos-universal
           path: |
-            universal/Dolphin.app
-            Dolphin-${{ env.RELEASE_TAG }}-macOS-universal.zip
+            universal/Fin.app
+            Fin-${{ env.RELEASE_TAG }}-macOS-universal.zip
           if-no-files-found: error
           retention-days: 14
 
@@ -233,8 +233,8 @@ jobs:
           fi
 
           gh release upload "${RELEASE_TAG}" \
-            release-assets/Dolphin-"${RELEASE_TAG}"-Windows-x64.7z \
-            release-assets/Dolphin-"${RELEASE_TAG}"-Windows-arm64.7z \
+            release-assets/Fin-"${RELEASE_TAG}"-Windows-x64.7z \
+            release-assets/Fin-"${RELEASE_TAG}"-Windows-arm64.7z \
             release-assets/Fin-"${RELEASE_TAG}"-macOS-universal.zip \
             --repo "${GITHUB_REPOSITORY}" \
             --clobber
