@@ -162,7 +162,9 @@ jobs:
 
       - name: Build universal app
         run: |
-          python3 BuildMacOSUniversalBinary.py \
+          mkdir -p build-macos
+          cd build-macos
+          python3 ../BuildMacOSUniversalBinary.py \
             -G Ninja \
             --ccache \
             --arm64_qt5_path "${GITHUB_WORKSPACE}/qt/latest/universal" \
@@ -172,16 +174,16 @@ jobs:
 
       - name: Verify .app bundle
         run: |
-          test -d "universal/Fin.app"
-          test -x "universal/Fin.app/Contents/MacOS/DolphinQt"
-          /usr/bin/file "universal/Fin.app/Contents/MacOS/DolphinQt"
-          /usr/bin/lipo -info "universal/Fin.app/Contents/MacOS/DolphinQt"
-          /usr/bin/codesign --verify --deep --strict --verbose=2 "universal/Fin.app"
+          test -d "build-macos/universal/Fin.app"
+          test -x "build-macos/universal/Fin.app/Contents/MacOS/DolphinQt"
+          /usr/bin/file "build-macos/universal/Fin.app/Contents/MacOS/DolphinQt"
+          /usr/bin/lipo -info "build-macos/universal/Fin.app/Contents/MacOS/DolphinQt"
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "build-macos/universal/Fin.app"
 
       - name: Package .app
         run: |
           ditto -c -k --sequesterRsrc --keepParent \
-            "universal/Fin.app" \
+            "build-macos/universal/Fin.app" \
             "Fin-${{ env.RELEASE_TAG }}-macOS-universal.zip"
 
       - name: Upload macOS artifact
@@ -189,7 +191,7 @@ jobs:
         with:
           name: macos-universal
           path: |
-            universal/Fin.app
+            build-macos/universal/Fin.app
             Fin-${{ env.RELEASE_TAG }}-macOS-universal.zip
           if-no-files-found: error
           retention-days: 14
