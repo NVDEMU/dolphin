@@ -42,12 +42,12 @@ jobs:
       matrix:
         include:
           - arch: x64
-            cmake_arch: x64
-            dolphin_arch: x86_64
+            cmake_preset: ninja-release-x64
+            build_preset: ninja-build-release-x64
             msvc_arch: amd64
           - arch: arm64
-            cmake_arch: ARM64
-            dolphin_arch: arm64
+            cmake_preset: visualstudio-release-arm64
+            build_preset: visualstudio-build-release-arm64
             msvc_arch: amd64_arm64
 
     steps:
@@ -78,13 +78,8 @@ jobs:
       - name: Configure
         shell: pwsh
         run: |
-          cmake -S . `
-            -B "build/release/${{ matrix.arch }}" `
-            -G "Visual Studio 18 2026" `
-            -A "${{ matrix.cmake_arch }}" `
-            -DCMAKE_TOOLCHAIN_FILE="CMake/DolphinToolchain.cmake" `
-            -DARCH="${{ matrix.dolphin_arch }}" `
-            -DCMAKE_CONFIGURATION_TYPES=Release `
+          cmake --preset "${{ matrix.cmake_preset }}" `
+            --fresh `
             -DENABLE_AUTOUPDATE=ON `
             -DDOLPHIN_DEFAULT_UPDATE_TRACK=github `
             -DDISTRIBUTOR=Fin
@@ -92,9 +87,7 @@ jobs:
       - name: Build
         shell: pwsh
         run: |
-          cmake --build "build/release/${{ matrix.arch }}" `
-            --config Release `
-            --parallel 2
+          cmake --build --preset "${{ matrix.build_preset }}" --parallel 2
 
       - name: Verify executable
         shell: pwsh
