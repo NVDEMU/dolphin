@@ -1,4 +1,4 @@
-name: Dolphin Nightly / Release Build
+name: Fin Nightly / Release Build
 
 on:
   push:
@@ -110,7 +110,7 @@ jobs:
         run: |
           7z a `
             -t7z `
-            "Dolphin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z" `
+            "Fin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z" `
             "${{ github.workspace }}\build\release\${{ matrix.arch }}\Binaries\*"
 
       - name: Upload Windows artifact
@@ -167,13 +167,13 @@ jobs:
             --arm64_qt5_path "${GITHUB_WORKSPACE}/qt/latest/universal" \
             --x86_64_qt5_path "${GITHUB_WORKSPACE}/qt/latest/universal" \
             --codesign - \
-            --distributor "NVDEMU/dolphin"
+            --distributor "Fin"
 
       - name: Verify .app bundle
         run: |
-          test -d "universal/Dolphin.app"
-          test -x "universal/Dolphin.app/Contents/MacOS/Dolphin"
-          /usr/bin/file "universal/Dolphin.app/Contents/MacOS/Dolphin"
+          test -d "universal/Fin.app"
+          test -x "universal/Fin.app/Contents/MacOS/DolphinQt"
+          /usr/bin/file "universal/Fin.app/Contents/MacOS/Dolphin"
           /usr/bin/lipo -info "universal/Dolphin.app/Contents/MacOS/Dolphin"
           /usr/bin/codesign --verify --deep --strict --verbose=2 "universal/Dolphin.app"
 
@@ -181,7 +181,7 @@ jobs:
         run: |
           ditto -c -k --sequesterRsrc --keepParent \
             "universal/Dolphin.app" \
-            "Dolphin-${{ env.RELEASE_TAG }}-macOS-universal.zip"
+            "Fin-${{ env.RELEASE_TAG }}-macOS-universal.zip"
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -212,9 +212,9 @@ jobs:
         run: |
           set -euo pipefail
           find release-assets -type f -maxdepth 2 -print
-          test -f "release-assets/Dolphin-${RELEASE_TAG}-Windows-x64.7z"
-          test -f "release-assets/Dolphin-${RELEASE_TAG}-Windows-arm64.7z"
-          test -f "release-assets/Dolphin-${RELEASE_TAG}-macOS-universal.zip"
+          test -f "release-assets/Fin-${RELEASE_TAG}-Windows-x64.7z"
+          test -f "release-assets/Fin-${RELEASE_TAG}-Windows-arm64.7z"
+          test -f "release-assets/Fin-${RELEASE_TAG}-macOS-universal.zip"
 
       - name: Create or update GitHub release
         env:
@@ -227,7 +227,7 @@ jobs:
             gh release create "${RELEASE_TAG}" \
               --repo "${GITHUB_REPOSITORY}" \
               --target "${BUILD_REF}" \
-              --title "Dolphin ${RELEASE_TAG}" \
+              --title "Fin ${RELEASE_TAG}" \
               --generate-notes \
               --draft
           fi
@@ -235,7 +235,7 @@ jobs:
           gh release upload "${RELEASE_TAG}" \
             release-assets/Dolphin-"${RELEASE_TAG}"-Windows-x64.7z \
             release-assets/Dolphin-"${RELEASE_TAG}"-Windows-arm64.7z \
-            release-assets/Dolphin-"${RELEASE_TAG}"-macOS-universal.zip \
+            release-assets/Fin-"${RELEASE_TAG}"-macOS-universal.zip \
             --repo "${GITHUB_REPOSITORY}" \
             --clobber
 
