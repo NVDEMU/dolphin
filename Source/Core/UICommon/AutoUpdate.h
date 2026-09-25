@@ -34,6 +34,9 @@ public:
     // The full changelog in HTML format.
     std::string changelog_html;
 
+    // GitHub release page for the new version.
+    std::string release_url;
+
     // Internals, to be passed to the updater binary.
     std::string this_manifest_url;
     std::string next_manifest_url;
@@ -41,6 +44,7 @@ public:
   };
 
   // Starts the updater process, which will wait in the background until the current process exits.
+  // Kept for compatibility with the original Dolphin updater implementation.
   enum class RestartMode
   {
     NO_RESTART_AFTER_UPDATE = 0,
