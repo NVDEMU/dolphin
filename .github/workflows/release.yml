@@ -25,7 +25,8 @@ env:
 jobs:
   windows:
     name: Windows ${{ matrix.arch }}
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -41,18 +42,26 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Install Ninja
+        shell: powershell
+        run: choco install ninja --yes --no-progress
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch == 'x64' && 'amd64' || 'amd64_arm64' }}
+
       - name: Configure
         shell: pwsh
         run: >
-          cmake --preset visualstudio-release-${{ matrix.arch }}
+          cmake --preset ninja-release-${{ matrix.arch }}
           -DDOLPHIN_DEFAULT_UPDATE_TRACK=github
           -DDISTRIBUTOR=NVDEMU/dolphin
 
       - name: Build
         run: >
           cmake --build
-          --preset visualstudio-build-release-${{ matrix.arch }}
-          --config Release
+          --preset ninja-build-release-${{ matrix.arch }}
           --parallel
 
       - name: Package
@@ -71,7 +80,8 @@ jobs:
 
   macos:
     name: macOS Universal
-    runs-on: macos-14
+    runs-on: macos-15-intel
+    timeout-minutes: 120
 
     steps:
       - name: Check out Dolphin
@@ -134,9 +144,15 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "${{ env.RELEASE_TAG }}"
-          release-assets/*
-          --repo "${{ github.repository }}"
-          --title "Dolphin ${{ env.RELEASE_TAG }}"
-          --generate-notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "Dolphin ${RELEASE_TAG}" \
+              --generate-notes \
+              --draft
+          fi
+          gh release upload "${RELEASE_TAG}" release-assets/* --repo "${GITHUB_REPOSITORY}" --clobber
+          gh release edit "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --draft=false
