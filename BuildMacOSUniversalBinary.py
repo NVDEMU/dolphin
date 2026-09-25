@@ -353,7 +353,13 @@ def build(config):
         config["codesign_identity"],
         dst_app+"/Dolphin.app"])
 
-    print("Built Universal Binary successfully!")
+    fin_app = os.path.join(dst_app, "Fin.app")
+    dolphin_app = os.path.join(dst_app, "Dolphin.app")
+    if os.path.exists(fin_app):
+        shutil.rmtree(fin_app)
+    os.rename(dolphin_app, fin_app)
+
+    print("Built Fin Universal Binary successfully!")
 
     # Build and run unit tests for each architecture
     unit_test_results = {}
