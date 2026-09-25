@@ -82,9 +82,9 @@ dolphin_check_std_version("LLVM_libc++" _LIBCPP_VERSION ${libc++_min_version})
 # Name of the Dolphin distributor. If you redistribute Dolphin builds (forks,
 # unofficial builds) please consider identifying your distribution with a
 # unique name here.
-set(DISTRIBUTOR "None" CACHE STRING "Name of the distributor.")
+set(DISTRIBUTOR "NVDEMU/dolphin" CACHE STRING "Name of the distributor.")
 
-set(DOLPHIN_DEFAULT_UPDATE_TRACK "" CACHE STRING "Name of the default update track. If empty, disables auto-update.")
+set(DOLPHIN_DEFAULT_UPDATE_TRACK "github" CACHE STRING "Name of the default update track. If empty, disables auto-update.")
 
 if(UNIX AND NOT APPLE AND NOT ANDROID)
   option(ENABLE_X11 "Enables X11 Support" ON)
