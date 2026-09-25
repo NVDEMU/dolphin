@@ -101,7 +101,7 @@ jobs:
           lfs: true
 
       - name: Install build tools
-        run: brew install ninja
+        run: brew install ninja ccache
 
       - name: Build universal app
         run: >
