@@ -5,6 +5,7 @@ on:
     branches:
       - master
     tags:
+      - "fin-*"
       - "dolphin-*"
       - "v*"
   workflow_dispatch:
@@ -24,7 +25,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: dolphin-build-${{ github.ref }}
+  group: fin-build-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -33,7 +34,7 @@ env:
 
 jobs:
   windows:
-    name: Windows ${{ matrix.arch }}
+    name: Fin Windows ${{ matrix.arch }}
     runs-on: windows-2025-vs2026
     timeout-minutes: 180
     strategy:
@@ -50,7 +51,7 @@ jobs:
             msvc_arch: amd64_arm64
 
     steps:
-      - name: Check out Dolphin
+      - name: Check out Fin
         uses: actions/checkout@v4
         with:
           ref: ${{ env.BUILD_REF }}
@@ -122,7 +123,7 @@ jobs:
           retention-days: 14
 
   macos:
-    name: macOS Universal
+    name: Fin macOS Universal
     runs-on: macos-15-intel
     timeout-minutes: 180
 
