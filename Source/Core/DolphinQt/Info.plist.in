@@ -35,7 +35,11 @@
     <key>CFBundleIconFile</key>
     <string>Dolphin.icns</string>
     <key>CFBundleIdentifier</key>
-    <string>org.dolphin-emu.dolphin</string>
+    <string>org.nvd.fin</string>
+    <key>CFBundleName</key>
+    <string>Fin</string>
+    <key>CFBundleDisplayName</key>
+    <string>Fin</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>English</string>
     <key>CFBundlePackageType</key>
