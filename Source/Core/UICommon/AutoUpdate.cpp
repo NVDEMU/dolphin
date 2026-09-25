@@ -145,7 +145,7 @@ std::string GenerateChangelog(const picojson::array& versions)
 
 bool AutoUpdateChecker::SystemSupportsAutoUpdates()
 {
-#if defined(AUTOUPDATE) && defined(OS_SUPPORTS_UPDATER)
+#if defined(AUTOUPDATE)
   return true;
 #else
   return false;
@@ -171,12 +171,28 @@ static std::string GetPlatformID()
 #endif
 }
 
+static std::string GetUpdateRepository()
+{
+  auto repository = std::getenv("DOLPHIN_UPDATE_REPOSITORY");
+  if (repository && *repository)
+    return repository;
+  return "NVDEMU/dolphin";
+}
+
+static std::string NormalizeReleaseTag(std::string tag)
+{
+  if (tag.rfind("dolphin-", 0) == 0)
+    tag.erase(0, 8);
+  if (tag.rfind("v", 0) == 0)
+    tag.erase(0, 1);
+  if (tag.size() >= 6 && tag.compare(tag.size() - 6, 6, "-dirty") == 0)
+    tag.erase(tag.size() - 6);
+  return tag;
+}
+
 static std::string GetUpdateServerUrl()
 {
-  auto server_url = std::getenv("DOLPHIN_UPDATE_SERVER_URL");
-  if (server_url)
-    return server_url;
-  return "https://dolphin-emu.org";
+  return fmt::format("https://api.github.com/repos/{}/releases/latest", GetUpdateRepository());
 }
 
 static u32 GetOwnProcessId()
@@ -197,75 +213,81 @@ void AutoUpdateChecker::CheckForUpdate(std::string_view update_track,
 
   Common::ScopeGuard guard([]() { s_check_in_progress.store(false); });
 
-  if (s_update_triggered)
-  {
-    if (check_type == CheckType::Manual)
-      SuccessAlertFmtT("A Dolphin update is already scheduled for the next time it closes.");
-
-    return;
-  }
-
   // Don't bother checking if updates are not supported or not enabled.
   if (!SystemSupportsAutoUpdates() || update_track.empty())
     return;
 
-#ifdef OS_SUPPORTS_UPDATER
-  CleanupFromPreviousUpdate();
-#endif
-
-  std::string_view version_hash = hash_override.empty() ? Common::GetScmRevGitStr() : hash_override;
-  std::string url = fmt::format("{}/update/check/v1/{}/{}/{}", GetUpdateServerUrl(), update_track,
-                                version_hash, GetPlatformID());
-
   const bool is_manual_check = check_type == CheckType::Manual;
 
   Common::HttpRequest req{std::chrono::seconds{10}};
-  auto resp = req.Get(url);
+  const Common::HttpRequest::Headers headers = {
+      {"Accept", "application/vnd.github+json"},
+      {"X-GitHub-Api-Version", "2022-11-28"},
+      {"User-Agent", "Dolphin-NVDEMU-Updater"},
+  };
+
+  const std::string url = GetUpdateServerUrl();
+  auto resp = req.Get(url, headers);
   if (!resp)
   {
     if (is_manual_check)
-      CriticalAlertFmtT("Unable to contact update server.");
+      CriticalAlertFmtT("Unable to contact GitHub's release API.");
+    INFO_LOG_FMT(COMMON, "GitHub release check failed with HTTP status {}.",
+                 req.GetLastResponseCode());
     return;
   }
+
   const std::string contents(reinterpret_cast<char*>(resp->data()), resp->size());
-  INFO_LOG_FMT(COMMON, "Auto-update JSON response: {}", contents);
+  INFO_LOG_FMT(COMMON, "GitHub release JSON response: {}", contents);
 
   picojson::value json;
   const std::string err = picojson::parse(json, contents);
-  if (!err.empty())
-  {
-    CriticalAlertFmtT("Invalid JSON received from auto-update service : {0}", err);
-    return;
-  }
-  picojson::object obj = json.get<picojson::object>();
-
-  if (obj["status"].get<std::string>() != "outdated")
+  if (!err.empty() || !json.is<picojson::object>())
   {
     if (is_manual_check)
-      SuccessAlertFmtT("You are running the latest version available on this update track.");
-    INFO_LOG_FMT(COMMON, "Auto-update status: we are up to date.");
+      CriticalAlertFmtT("Invalid JSON received from GitHub's release API.");
+    return;
+  }
+
+  const picojson::object obj = json.get<picojson::object>();
+  if (!obj.contains("tag_name") || !obj["tag_name"].is<std::string>() ||
+      !obj.contains("html_url") || !obj["html_url"].is<std::string>())
+  {
+    if (is_manual_check)
+      CriticalAlertFmtT("GitHub returned an unexpected release response.");
+    return;
+  }
+
+  const std::string latest_tag = NormalizeReleaseTag(obj["tag_name"].get<std::string>());
+  const std::string current_tag = NormalizeReleaseTag(Common::GetScmDescStr());
+
+  // Releases are only useful to this updater when they have a version identifier.
+  if (latest_tag.empty())
+    return;
+
+  if (latest_tag == current_tag)
+  {
+    if (is_manual_check)
+      SuccessAlertFmtT("You are running the latest release of this Dolphin fork.");
+    INFO_LOG_FMT(COMMON, "GitHub release status: we are up to date.");
     return;
   }
 
   NewVersionInformation nvi;
-  nvi.this_manifest_url = obj["old"].get<picojson::object>()["manifest"].get<std::string>();
-  nvi.next_manifest_url = obj["new"].get<picojson::object>()["manifest"].get<std::string>();
-  nvi.content_store_url = obj["content-store"].get<std::string>();
-  nvi.new_shortrev = obj["new"].get<picojson::object>()["name"].get<std::string>();
-  nvi.new_hash = obj["new"].get<picojson::object>()["hash"].get<std::string>();
+  nvi.new_shortrev = latest_tag;
+  if (obj.contains("target_commitish") && obj["target_commitish"].is<std::string>())
+    nvi.new_hash = obj["target_commitish"].get<std::string>();
 
-  // TODO: generate the HTML changelog from the JSON information.
-  nvi.changelog_html = GenerateChangelog(obj["changelog"].get<picojson::array>());
+  nvi.release_url = obj["html_url"].get<std::string>();
+  const std::string release_body =
+      obj.contains("body") && obj["body"].is<std::string>() ? obj["body"].get<std::string>() : "";
 
-  if (std::getenv("DOLPHIN_UPDATE_TEST_DONE"))
-  {
-    // We are at end of updater test flow, send a message to server, which will kill us.
-    req.Get(fmt::format("{}/update-test-done/{}", GetUpdateServerUrl(), GetOwnProcessId()));
-  }
-  else
-  {
-    OnUpdateAvailable(nvi);
-  }
+  nvi.changelog_html =
+      "<p><b>Dolphin " + Common::GetEscapedHtml(latest_tag) + "</b> is available from GitHub.</p>";
+  if (!release_body.empty())
+    nvi.changelog_html += "<p>" + Common::GetEscapedHtml(release_body) + "</p>";
+
+  OnUpdateAvailable(nvi);
 }
 
 void AutoUpdateChecker::TriggerUpdate(const AutoUpdateChecker::NewVersionInformation& info,
