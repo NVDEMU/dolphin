@@ -70,8 +70,8 @@ jobs:
         shell: pwsh
         run: |
           cmake --version
-          cl
-          7z
+          Get-Command cl
+          Get-Command 7z
           git rev-parse HEAD
 
       - name: Configure
