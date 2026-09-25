@@ -1,0 +1,142 @@
+name: Fork Release
+
+on:
+  push:
+    tags:
+      - "dolphin-*"
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and publish"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dolphin-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+jobs:
+  windows:
+    name: Windows ${{ matrix.arch }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x64
+          - arm64
+
+    steps:
+      - name: Check out Dolphin
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Configure
+        shell: pwsh
+        run: >
+          cmake --preset visualstudio-release-${{ matrix.arch }}
+          -DDOLPHIN_DEFAULT_UPDATE_TRACK=github
+          -DDISTRIBUTOR=NVDEMU/dolphin
+
+      - name: Build
+        run: >
+          cmake --build
+          --preset visualstudio-build-release-${{ matrix.arch }}
+          --config Release
+          --parallel
+
+      - name: Package
+        shell: pwsh
+        run: >
+          7z a
+          "${{ github.workspace }}\Dolphin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z"
+          "${{ github.workspace }}\build\release\${{ matrix.arch }}\Binaries\*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: Dolphin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z
+          if-no-files-found: error
+
+  macos:
+    name: macOS Universal
+    runs-on: macos-14
+
+    steps:
+      - name: Check out Dolphin
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Check out universal Qt toolchain
+        uses: actions/checkout@v4
+        with:
+          repository: dolphin-emu/ext-macos-qt
+          ref: master
+          path: qt
+          fetch-depth: 1
+          lfs: true
+
+      - name: Install build tools
+        run: brew install ninja
+
+      - name: Build universal app
+        run: >
+          python3 BuildMacOSUniversalBinary.py
+          -G Ninja
+          --ccache
+          --arm64_qt5_path "${{ github.workspace }}/qt/latest/universal"
+          --x86_64_qt5_path "${{ github.workspace }}/qt/latest/universal"
+          --codesign -
+          --distributor "NVDEMU/dolphin"
+
+      - name: Package
+        run: >
+          ditto -c -k --sequesterRsrc --keepParent
+          universal/Dolphin.app
+          "Dolphin-${{ env.RELEASE_TAG }}-macOS-universal.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-universal
+          path: Dolphin-${{ env.RELEASE_TAG }}-macOS-universal.zip
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs:
+      - windows
+      - macos
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*"
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${{ env.RELEASE_TAG }}"
+          release-assets/*
+          --repo "${{ github.repository }}"
+          --title "Dolphin ${{ env.RELEASE_TAG }}"
+          --generate-notes
