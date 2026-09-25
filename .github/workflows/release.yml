@@ -242,4 +242,5 @@ jobs:
 
           gh release edit "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
+            --title "Fin ${RELEASE_TAG}" \
             --draft=false
