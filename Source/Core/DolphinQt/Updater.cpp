@@ -3,15 +3,16 @@
 
 #include "DolphinQt/Updater.h"
 
-#include <cstdlib>
 #include <utility>
 
-#include <QCheckBox>
+#include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QLabel>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QTextBrowser>
+#include <QUrl>
 #include <QVBoxLayout>
 
 #include "Common/Version.h"
@@ -42,57 +43,40 @@ void Updater::CheckForUpdate()
 
 void Updater::OnUpdateAvailable(const NewVersionInformation& info)
 {
-  if (std::getenv("DOLPHIN_UPDATE_SERVER_URL"))
-  {
-    TriggerUpdate(info, AutoUpdateChecker::RestartMode::RESTART_AFTER_UPDATE);
-    RunOnObject(m_parent, [this] {
-      m_parent->close();
-      return 0;
-    });
-    return;
-  }
-
-  bool later = false;
-
-  std::optional<int> choice = RunOnObject(m_parent, [&] {
+  RunOnObject(m_parent, [&] {
     QDialog* dialog = new QDialog(m_parent);
     dialog->setAttribute(Qt::WA_DeleteOnClose, true);
     dialog->setWindowTitle(tr("Update available"));
 
     auto* label = new QLabel(
-        tr("<h2>A new version of Dolphin is available!</h2>Dolphin %1 is available for "
-           "download. "
-           "You are running %2.<br> Would you like to update?<br><h4>Release Notes:</h4>")
+        tr("<h2>A new version of this Dolphin fork is available!</h2>"
+           "Dolphin %1 is available on GitHub.<br>"
+           "You are running %2.<br><br>"
+           "<h4>Release Notes:</h4>")
             .arg(QString::fromStdString(info.new_shortrev))
             .arg(QString::fromStdString(Common::GetScmDescStr())));
     label->setTextFormat(Qt::RichText);
 
     auto* changelog = new QTextBrowser;
-
     changelog->setHtml(QString::fromStdString(info.changelog_html));
     changelog->setOpenExternalLinks(true);
-    changelog->setMinimumWidth(400);
-
-    auto* update_later_check = new QCheckBox(tr("Update after closing Dolphin"));
-
-    connect(update_later_check, &QCheckBox::toggled, [&](bool checked) { later = checked; });
+    changelog->setMinimumWidth(500);
 
     auto* buttons = new QDialogButtonBox;
 
-    auto* never_btn =
-        buttons->addButton(tr("Never Auto-Update"), QDialogButtonBox::DestructiveRole);
+    auto* disable_btn =
+        buttons->addButton(tr("Disable Automatic Checks"), QDialogButtonBox::DestructiveRole);
     buttons->addButton(tr("Remind Me Later"), QDialogButtonBox::RejectRole);
-    buttons->addButton(tr("Install Update"), QDialogButtonBox::AcceptRole);
+    buttons->addButton(tr("Open GitHub Release"), QDialogButtonBox::AcceptRole);
 
     auto* layout = new QVBoxLayout;
     dialog->setLayout(layout);
 
     layout->addWidget(label);
     layout->addWidget(changelog);
-    layout->addWidget(update_later_check);
     layout->addWidget(buttons);
 
-    connect(never_btn, &QPushButton::clicked, [dialog] {
+    connect(disable_btn, &QPushButton::clicked, [dialog] {
       Settings::Instance().SetAutoUpdateTrack(QString{});
       dialog->reject();
     });
@@ -100,20 +84,16 @@ void Updater::OnUpdateAvailable(const NewVersionInformation& info)
     connect(buttons, &QDialogButtonBox::accepted, dialog, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
 
-    return dialog->exec();
-  });
-
-  if (choice && *choice == QDialog::Accepted)
-  {
-    TriggerUpdate(info, later ? AutoUpdateChecker::RestartMode::NO_RESTART_AFTER_UPDATE :
-                                AutoUpdateChecker::RestartMode::RESTART_AFTER_UPDATE);
-
-    if (!later)
+    if (dialog->exec() == QDialog::Accepted)
     {
-      RunOnObject(m_parent, [this] {
-        m_parent->close();
-        return 0;
-      });
+      const bool opened = QDesktopServices::openUrl(QUrl(QString::fromStdString(info.release_url)));
+      if (!opened)
+      {
+        QMessageBox::warning(m_parent, tr("Unable to Open Release"),
+                              tr("Dolphin could not open the GitHub release page."));
+      }
     }
-  }
+
+    return 0;
+  });
 }
