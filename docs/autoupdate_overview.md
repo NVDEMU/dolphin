@@ -2,6 +2,18 @@
 Dolphin's autoupdate procedure is spread through a number of files; this overview describes the
 update flow.
 
+## NVDEMU/dolphin fork behavior
+
+This fork uses GitHub Releases instead of Dolphin's hosted update service. The update checker
+queries the latest published release for `NVDEMU/dolphin`. When a newer release is found, Dolphin
+shows its release notes and can open the GitHub release page for download.
+
+The fork's GitHub Actions release workflow builds Windows x64, Windows ARM64, and a macOS
+universal application, then publishes those artifacts to a GitHub Release. The fork does not use
+Dolphin's private manifest-signing key or hosted content store, so the in-app update action opens
+the release page rather than attempting a manifest-based self-install.
+
+
 ## General notes:
 * The updater is only supported on Windows and MacOS.
 * There are four update frequency tracks: Dev (updated every commit), Beta (a few times a year),
