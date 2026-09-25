@@ -1,93 +1,136 @@
-name: Fork Release
+name: Dolphin Nightly / Release Build
 
 on:
   push:
+    branches:
+      - master
     tags:
       - "dolphin-*"
       - "v*"
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Existing tag to build and publish"
-        required: true
+      ref:
+        description: "Branch, tag, or commit to build"
+        required: false
+        default: "master"
+        type: string
+      release_tag:
+        description: "GitHub release tag (use nightly for the rolling nightly build)"
+        required: false
+        default: "nightly"
         type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: dolphin-release-${{ github.ref }}
+  group: dolphin-build-${{ github.ref }}
   cancel-in-progress: false
 
 env:
-  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  BUILD_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name || 'nightly') }}
 
 jobs:
   windows:
     name: Windows ${{ matrix.arch }}
     runs-on: windows-2025-vs2026
-    timeout-minutes: 90
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        arch:
-          - x64
-          - arm64
+        include:
+          - arch: x64
+            cmake_arch: x64
+            dolphin_arch: x86_64
+            msvc_arch: amd64
+          - arch: arm64
+            cmake_arch: ARM64
+            dolphin_arch: arm64
+            msvc_arch: amd64_arm64
 
     steps:
       - name: Check out Dolphin
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ env.BUILD_REF }}
           submodules: recursive
           fetch-depth: 0
-
-      - name: Install Ninja
-        shell: powershell
-        run: choco install ninja --yes --no-progress
 
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: ${{ matrix.arch == 'x64' && 'amd64' || 'amd64_arm64' }}
+          arch: ${{ matrix.msvc_arch }}
+
+      - name: Install 7-Zip
+        shell: pwsh
+        run: choco install 7zip --yes --no-progress
+
+      - name: Show toolchain
+        shell: pwsh
+        run: |
+          cmake --version
+          cl
+          7z
+          git rev-parse HEAD
 
       - name: Configure
         shell: pwsh
-        run: >
-          cmake --preset ninja-release-${{ matrix.arch }}
-          -DDOLPHIN_DEFAULT_UPDATE_TRACK=github
-          -DDISTRIBUTOR=NVDEMU/dolphin
+        run: |
+          cmake -S . `
+            -B "build/release/${{ matrix.arch }}" `
+            -G "Visual Studio 18 2026" `
+            -A "${{ matrix.cmake_arch }}" `
+            -DCMAKE_TOOLCHAIN_FILE="CMake/DolphinToolchain.cmake" `
+            -DARCH="${{ matrix.dolphin_arch }}" `
+            -DCMAKE_CONFIGURATION_TYPES=Release `
+            -DENABLE_AUTOUPDATE=ON `
+            -DDOLPHIN_DEFAULT_UPDATE_TRACK=github `
+            -DDISTRIBUTOR=NVDEMU/dolphin
 
       - name: Build
-        run: >
-          cmake --build
-          --preset ninja-build-release-${{ matrix.arch }}
-          --parallel
+        shell: pwsh
+        run: |
+          cmake --build "build/release/${{ matrix.arch }}" `
+            --config Release `
+            --parallel 2
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = Join-Path $env:GITHUB_WORKSPACE "build/release/${{ matrix.arch }}/Binaries/Dolphin.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Dolphin.exe was not produced at $exe"
+            Get-ChildItem "build/release/${{ matrix.arch }}/Binaries" -Force -ErrorAction SilentlyContinue
+            exit 1
+          }
 
       - name: Package
         shell: pwsh
-        run: >
-          7z a
-          "${{ github.workspace }}\Dolphin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z"
-          "${{ github.workspace }}\build\release\${{ matrix.arch }}\Binaries\*"
+        run: |
+          7z a `
+            -t7z `
+            "Dolphin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z" `
+            "${{ github.workspace }}\build\release\${{ matrix.arch }}\Binaries\*"
 
-      - name: Upload artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
           path: Dolphin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z
           if-no-files-found: error
+          retention-days: 14
 
   macos:
     name: macOS Universal
     runs-on: macos-15-intel
-    timeout-minutes: 120
+    timeout-minutes: 180
 
     steps:
       - name: Check out Dolphin
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ env.BUILD_REF }}
           submodules: recursive
           fetch-depth: 0
 
@@ -103,28 +146,52 @@ jobs:
       - name: Install build tools
         run: brew install ninja ccache
 
+      - name: Show toolchain
+        run: |
+          sw_vers
+          cmake --version
+          ninja --version
+          ccache --version
+          git rev-parse HEAD
+
+      - name: Verify universal Qt
+        run: |
+          test -d "${GITHUB_WORKSPACE}/qt/latest/universal"
+          find "${GITHUB_WORKSPACE}/qt/latest/universal" -maxdepth 2 -type d -print | head -40
+
       - name: Build universal app
-        run: >
-          python3 BuildMacOSUniversalBinary.py
-          -G Ninja
-          --ccache
-          --arm64_qt5_path "${{ github.workspace }}/qt/latest/universal"
-          --x86_64_qt5_path "${{ github.workspace }}/qt/latest/universal"
-          --codesign -
-          --distributor "NVDEMU/dolphin"
+        run: |
+          python3 BuildMacOSUniversalBinary.py \
+            -G Ninja \
+            --ccache \
+            --arm64_qt5_path "${GITHUB_WORKSPACE}/qt/latest/universal" \
+            --x86_64_qt5_path "${GITHUB_WORKSPACE}/qt/latest/universal" \
+            --codesign - \
+            --distributor "NVDEMU/dolphin"
 
-      - name: Package
-        run: >
-          ditto -c -k --sequesterRsrc --keepParent
-          universal/Dolphin.app
-          "Dolphin-${{ env.RELEASE_TAG }}-macOS-universal.zip"
+      - name: Verify .app bundle
+        run: |
+          test -d "universal/Dolphin.app"
+          test -x "universal/Dolphin.app/Contents/MacOS/Dolphin"
+          /usr/bin/file "universal/Dolphin.app/Contents/MacOS/Dolphin"
+          /usr/bin/lipo -info "universal/Dolphin.app/Contents/MacOS/Dolphin"
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "universal/Dolphin.app"
 
-      - name: Upload artifact
+      - name: Package .app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            "universal/Dolphin.app" \
+            "Dolphin-${{ env.RELEASE_TAG }}-macOS-universal.zip"
+
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-universal
-          path: Dolphin-${{ env.RELEASE_TAG }}-macOS-universal.zip
+          path: |
+            universal/Dolphin.app
+            Dolphin-${{ env.RELEASE_TAG }}-macOS-universal.zip
           if-no-files-found: error
+          retention-days: 14
 
   publish:
     name: Publish GitHub release
@@ -132,27 +199,46 @@ jobs:
       - windows
       - macos
     runs-on: ubuntu-latest
-
     steps:
-      - name: Download release artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: "*"
           path: release-assets
           merge-multiple: true
 
-      - name: Publish release
+      - name: Verify release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          find release-assets -type f -maxdepth 2 -print
+          test -f "release-assets/Dolphin-${RELEASE_TAG}-Windows-x64.7z"
+          test -f "release-assets/Dolphin-${RELEASE_TAG}-Windows-arm64.7z"
+          test -f "release-assets/Dolphin-${RELEASE_TAG}-macOS-universal.zip"
+
+      - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
+
           if ! gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             gh release create "${RELEASE_TAG}" \
               --repo "${GITHUB_REPOSITORY}" \
+              --target "${BUILD_REF}" \
               --title "Dolphin ${RELEASE_TAG}" \
               --generate-notes \
               --draft
           fi
-          gh release upload "${RELEASE_TAG}" release-assets/* --repo "${GITHUB_REPOSITORY}" --clobber
-          gh release edit "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --draft=false
+
+          gh release upload "${RELEASE_TAG}" \
+            release-assets/Dolphin-"${RELEASE_TAG}"-Windows-x64.7z \
+            release-assets/Dolphin-"${RELEASE_TAG}"-Windows-arm64.7z \
+            release-assets/Dolphin-"${RELEASE_TAG}"-macOS-universal.zip \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber
+
+          gh release edit "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --draft=false
