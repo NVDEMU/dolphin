@@ -249,16 +249,18 @@ void AutoUpdateChecker::CheckForUpdate(std::string_view update_track,
     return;
   }
 
-  const picojson::object obj = json.get<picojson::object>();
-  if (!obj.contains("tag_name") || !obj["tag_name"].is<std::string>() ||
-      !obj.contains("html_url") || !obj["html_url"].is<std::string>())
+  const picojson::object& obj = json.get<picojson::object>();
+  const auto tag_it = obj.find("tag_name");
+  const auto url_it = obj.find("html_url");
+  if (tag_it == obj.end() || !tag_it->second.is<std::string>() ||
+      url_it == obj.end() || !url_it->second.is<std::string>())
   {
     if (is_manual_check)
       CriticalAlertFmtT("GitHub returned an unexpected release response.");
     return;
   }
 
-  const std::string latest_tag = NormalizeReleaseTag(obj["tag_name"].get<std::string>());
+  const std::string latest_tag = NormalizeReleaseTag(tag_it->second.get<std::string>());
   const std::string current_tag = NormalizeReleaseTag(Common::GetScmDescStr());
 
   // Releases are only useful to this updater when they have a version identifier.
@@ -275,12 +277,14 @@ void AutoUpdateChecker::CheckForUpdate(std::string_view update_track,
 
   NewVersionInformation nvi;
   nvi.new_shortrev = latest_tag;
-  if (obj.contains("target_commitish") && obj["target_commitish"].is<std::string>())
-    nvi.new_hash = obj["target_commitish"].get<std::string>();
+  const auto target_it = obj.find("target_commitish");
+  if (target_it != obj.end() && target_it->second.is<std::string>())
+    nvi.new_hash = target_it->second.get<std::string>();
 
-  nvi.release_url = obj["html_url"].get<std::string>();
+  nvi.release_url = url_it->second.get<std::string>();
+  const auto body_it = obj.find("body");
   const std::string release_body =
-      obj.contains("body") && obj["body"].is<std::string>() ? obj["body"].get<std::string>() : "";
+      body_it != obj.end() && body_it->second.is<std::string>() ? body_it->second.get<std::string>() : "";
 
   nvi.changelog_html =
       "<p><b>Dolphin " + Common::GetEscapedHtml(latest_tag) + "</b> is available from GitHub.</p>";
