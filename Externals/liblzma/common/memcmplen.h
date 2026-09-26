@@ -15,7 +15,8 @@
 
 #include "common.h"
 
-#ifdef HAVE_IMMINTRIN_H
+#if defined(HAVE_IMMINTRIN_H) && \
+    (defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__))
 #	include <immintrin.h>
 #endif
 
