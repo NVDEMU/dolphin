@@ -4,6 +4,8 @@
 #include "UpdaterCommon/UpdaterCommon.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <filesystem>
 #include <array>
 #include <memory>
 #include <optional>
@@ -274,6 +276,217 @@ static bool PlatformVersionCheck(const std::vector<TodoList::UpdateOp>& to_updat
 {
   UI::SetDescription("Checking platform...");
   return Platform::VersionCheck(to_update, install_base_path, temp_dir);
+}
+
+static std::string ShellQuote(const std::string& value)
+{
+#ifdef _WIN32
+  std::string result = "\"";
+  for (const char c : value)
+  {
+    if (c == '"')
+      result += '\\';
+    result += c;
+  }
+  result += '"';
+  return result;
+#else
+  std::string result = "'";
+  for (const char c : value)
+  {
+    if (c == '\'')
+      result += "'\\''";
+    else
+      result += c;
+  }
+  result += "'";
+  return result;
+#endif
+}
+
+static bool RunExtractionCommand(const std::string& archive_path, const std::string& output_path)
+{
+#ifdef _WIN32
+  const std::string command =
+      fmt::format("tar -xf {} -C {}", ShellQuote(archive_path), ShellQuote(output_path));
+#else
+  const std::string command =
+      fmt::format("/usr/bin/ditto -x -k {} {}", ShellQuote(archive_path), ShellQuote(output_path));
+#endif
+
+  LogToFile("Extracting update package with: %s\n", command.c_str());
+  return std::system(command.c_str()) == 0;
+}
+
+static bool DownloadPackage(const std::string& package_url, const std::string& package_path)
+{
+  UI::SetDescription("Downloading Fin update package...");
+  UI::SetCurrentMarquee(false);
+
+  Common::HttpRequest req(std::chrono::seconds(120), ProgressCallback);
+  const Common::HttpRequest::Headers headers = {
+      {"Accept", "application/octet-stream"},
+      {"User-Agent", "Fin-NVDEMU-Updater"},
+  };
+
+  LogToFile("Downloading package %s ...\n", package_url.c_str());
+  auto resp = req.Get(package_url, headers);
+  if (!resp)
+  {
+    LogToFile("Package download failed with HTTP status %ld.\n",
+              req.GetLastResponseCode());
+    return false;
+  }
+
+  File::IOFile output;
+  if (!output.Open(package_path, "wb"))
+  {
+    LogToFile("Could not open package destination %s.\n", package_path.c_str());
+    return false;
+  }
+
+  output.WriteBytes(resp->data(), resp->size());
+  output.Close();
+  UI::SetCurrentMarquee(true);
+  return true;
+}
+
+static bool CopyDirectoryContents(const std::filesystem::path& source,
+                                  const std::filesystem::path& destination)
+{
+  std::error_code ec;
+  std::filesystem::create_directories(destination, ec);
+  if (ec)
+    return false;
+
+  for (const auto& entry : std::filesystem::recursive_directory_iterator(source, ec))
+  {
+    if (ec)
+      return false;
+
+    const auto relative = std::filesystem::relative(entry.path(), source, ec);
+    if (ec)
+      return false;
+
+    const auto target = destination / relative;
+    if (entry.is_directory(ec))
+    {
+      if (ec)
+        return false;
+      std::filesystem::create_directories(target, ec);
+      if (ec)
+        return false;
+    }
+    else if (entry.is_regular_file(ec))
+    {
+      if (ec)
+        return false;
+      std::filesystem::create_directories(target.parent_path(), ec);
+      if (ec)
+        return false;
+      std::filesystem::copy_file(entry.path(), target,
+                                 std::filesystem::copy_options::overwrite_existing, ec);
+      if (ec)
+        return false;
+    }
+  }
+
+  return true;
+}
+
+static bool PerformPackageUpdate(const std::string& package_url, const std::string& package_name,
+                                 const std::string& package_commit,
+                                 const std::string& install_base_path,
+                                 const std::string& temp_dir)
+{
+  LogToFile("Starting Fin package update.\n");
+  LogToFile("Package: %s\n", package_name.c_str());
+  LogToFile("Commit: %s\n", package_commit.c_str());
+
+  if (package_name.empty() ||
+      std::filesystem::path(package_name).filename().string() != package_name)
+  {
+    LogToFile("Invalid update package filename.\n");
+    return false;
+  }
+
+  const std::string package_path = temp_dir + DIR_SEP + package_name;
+  if (!DownloadPackage(package_url, package_path))
+    return false;
+
+  const std::string extract_path = temp_dir + DIR_SEP + "extracted";
+  if (!File::CreateFullPath(extract_path))
+    return false;
+
+  UI::SetDescription("Extracting Fin update...");
+  if (!RunExtractionCommand(package_path, extract_path))
+  {
+    LogToFile("Could not extract update package.\n");
+    return false;
+  }
+
+#ifdef __APPLE__
+  const std::filesystem::path source_app = std::filesystem::path(extract_path) / "Fin.app";
+  const std::filesystem::path install_app = std::filesystem::path(install_base_path) / "Fin.app";
+
+  if (!std::filesystem::is_directory(source_app))
+  {
+    LogToFile("Update package does not contain Fin.app.\n");
+    return false;
+  }
+
+  UI::SetDescription("Installing Fin...");
+  if (std::filesystem::exists(install_app))
+  {
+    const auto backup_app = install_app.string() + ".old";
+    File::DeleteDirRecursively(backup_app);
+    if (!File::Rename(install_app.string(), backup_app))
+      return false;
+  }
+
+  const std::string command =
+      fmt::format("/usr/bin/ditto {} {}", ShellQuote(source_app.string()), ShellQuote(install_app.string()));
+  if (std::system(command.c_str()) != 0)
+  {
+    LogToFile("Could not install the new Fin.app.\n");
+    return false;
+  }
+
+  File::DeleteDirRecursively(install_app.string() + ".old");
+#else
+  UI::SetDescription("Installing Fin...");
+  const std::filesystem::path install_path = std::filesystem::path(install_base_path);
+
+#ifdef _WIN32
+  const auto self_path = Common::GetModuleName(nullptr);
+  std::filesystem::path self_filename;
+  if (self_path)
+    self_filename = std::filesystem::path(*self_path).filename();
+
+  if (!self_filename.empty())
+  {
+    const auto self_target = install_path / self_filename;
+    if (std::filesystem::exists(self_target))
+    {
+      const auto backup = self_target.string() + ".old";
+      File::Delete(backup, File::IfAbsentBehavior::NoConsoleWarning);
+      if (!File::Rename(self_target.string(), backup))
+        return false;
+    }
+  }
+#endif
+
+  if (!CopyDirectoryContents(std::filesystem::path(extract_path), install_path))
+    return false;
+
+#ifdef _WIN32
+  if (!self_filename.empty())
+    File::Delete((install_path / (self_filename.string() + ".old")).string(),
+                 File::IfAbsentBehavior::NoConsoleWarning);
+#endif
+#endif
+
+  return true;
 }
 
 static TodoList ComputeActionsToDo(Manifest this_manifest, Manifest next_manifest)
@@ -612,6 +825,9 @@ struct Options
   std::string next_manifest_url;
   std::string content_store_url;
   std::string install_base_path;
+  std::optional<std::string> package_url;
+  std::optional<std::string> package_name;
+  std::optional<std::string> package_commit;
   std::optional<std::string> binary_to_restart;
   std::optional<u32> parent_pid;
   std::optional<std::string> log_file;
@@ -636,6 +852,18 @@ static std::optional<Options> ParseCommandLine(std::vector<std::string>& args)
       .dest("content-store-url")
       .help("Base URL of the content store where files to download are stored.")
       .metavar("URL");
+  parser.add_option("--package-url")
+      .dest("package-url")
+      .help("Direct Fin update package URL.")
+      .metavar("URL");
+  parser.add_option("--package-name")
+      .dest("package-name")
+      .help("Filename of the direct Fin update package.")
+      .metavar("NAME");
+  parser.add_option("--package-commit")
+      .dest("package-commit")
+      .help("Git commit contained in the direct Fin update package.")
+      .metavar("HASH");
   parser.add_option("--install-base-path")
       .dest("install-base-path")
       .help("Base path of the Dolphin install to be updated.")
@@ -659,21 +887,39 @@ static std::optional<Options> ParseCommandLine(std::vector<std::string>& args)
 
   Options opts;
 
-  // Required arguments.
-  std::vector<std::string> required{"this-manifest-url", "next-manifest-url", "content-store-url",
-                                    "install-base-path"};
-  for (const auto& req : required)
+  // The install path is always required. Fin can use either the direct package updater or
+  // Dolphin's legacy manifest updater.
+  if (!options.is_set("install-base-path"))
   {
-    if (!options.is_set(req))
-    {
-      parser.print_help();
-      return {};
-    }
+    parser.print_help();
+    return {};
   }
-  opts.this_manifest_url = options["this-manifest-url"];
-  opts.next_manifest_url = options["next-manifest-url"];
-  opts.content_store_url = options["content-store-url"];
+
   opts.install_base_path = options["install-base-path"];
+
+  if (options.is_set("package-url"))
+    opts.package_url = options["package-url"];
+  if (options.is_set("package-name"))
+    opts.package_name = options["package-name"];
+  if (options.is_set("package-commit"))
+    opts.package_commit = options["package-commit"];
+
+  const bool package_mode = opts.package_url.has_value();
+  if (!package_mode)
+  {
+    for (const auto& req : {"this-manifest-url", "next-manifest-url", "content-store-url"})
+    {
+      if (!options.is_set(req))
+      {
+        parser.print_help();
+        return {};
+      }
+    }
+
+    opts.this_manifest_url = options["this-manifest-url"];
+    opts.next_manifest_url = options["next-manifest-url"];
+    opts.content_store_url = options["content-store-url"];
+  }
 
   // Optional arguments.
   if (options.is_set("binary-to-restart"))
@@ -709,8 +955,17 @@ bool RunUpdater(std::vector<std::string> args)
       atexit(FlushLog);
   }
 
-  LogToFile("Updating from: %s\n", opts.this_manifest_url.c_str());
-  LogToFile("Updating to:   %s\n", opts.next_manifest_url.c_str());
+  if (opts.package_url)
+  {
+    LogToFile("Installing direct Fin package update.\n");
+    LogToFile("Package: %s\n", opts.package_name.value_or("(unnamed)").c_str());
+    LogToFile("Commit: %s\n", opts.package_commit.value_or("(unknown)").c_str());
+  }
+  else
+  {
+    LogToFile("Updating from: %s\n", opts.this_manifest_url.c_str());
+    LogToFile("Updating to:   %s\n", opts.next_manifest_url.c_str());
+  }
   LogToFile("Install path:  %s\n", opts.install_base_path.c_str());
 
   if (!File::IsDirectory(opts.install_base_path))
@@ -731,6 +986,46 @@ bool RunUpdater(std::vector<std::string> args)
   }
 
   UI::SetVisible(true);
+
+  if (opts.package_url)
+  {
+    if (!opts.package_name || opts.package_name->empty())
+    {
+      FatalError("Update package filename is missing. Aborting.");
+      return false;
+    }
+
+    std::string temp_dir = File::CreateTempDir();
+    if (temp_dir.empty())
+    {
+      FatalError("Could not create temporary directory. Aborting.");
+      return false;
+    }
+
+    const bool ok = PerformPackageUpdate(*opts.package_url, *opts.package_name,
+                                          opts.package_commit.value_or(""), opts.install_base_path,
+                                          temp_dir);
+    File::DeleteDirRecursively(temp_dir);
+    if (!ok)
+    {
+      FatalError("Failed to download or install the Fin update.");
+      return false;
+    }
+
+    UI::ResetCurrentProgress();
+    UI::ResetTotalProgress();
+    UI::SetCurrentMarquee(false);
+    UI::SetTotalMarquee(false);
+    UI::SetCurrentProgress(1, 1);
+    UI::SetTotalProgress(1, 1);
+    UI::SetDescription("Done!");
+    UI::Sleep(1);
+
+    if (opts.binary_to_restart)
+      UI::LaunchApplication(*opts.binary_to_restart);
+
+    return true;
+  }
 
   UI::SetDescription("Fetching and parsing manifests...");
 

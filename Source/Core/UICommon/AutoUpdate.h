@@ -37,6 +37,10 @@ public:
     // GitHub release page for the new version.
     std::string release_url;
 
+    // Direct release asset used by Fin's package updater.
+    std::string package_url;
+    std::string package_name;
+
     // Internals, to be passed to the updater binary.
     std::string this_manifest_url;
     std::string next_manifest_url;
