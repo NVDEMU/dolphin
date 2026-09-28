@@ -80,7 +80,9 @@ public:
 
   struct DesiredState
   {
-    std::array<u8, 4> sensor_weight;
+    std::array<u8, 4> sensor_weight{};
+    u8 button = 0;
+    u8 battery_level = 0x95;
   };
 
   BalanceBoard();
