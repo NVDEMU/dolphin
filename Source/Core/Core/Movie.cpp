@@ -53,6 +53,7 @@
 #include "Core/HW/Wiimote.h"
 #include "Core/HW/WiimoteCommon/WiimoteReport.h"
 #include "Core/HW/WiimoteEmu/Extension/Classic.h"
+#include "Core/HW/WiimoteEmu/Extension/Extension.h"
 #include "Core/HW/WiimoteEmu/Extension/Nunchuk.h"
 #include "Core/HW/WiimoteEmu/ExtensionPort.h"
 #include "Core/IOS/USB/Bluetooth/BTEmu.h"
@@ -719,6 +720,7 @@ static std::string GenerateWiiInputDisplayString(int index, const DesiredWiimote
         [&](const DrawsomeTablet::DesiredState&) { display_str += " Drawsome"; },
         [&](const TaTaCon::DesiredState&) { display_str += " TaTaCon"; },
         [&](const Shinkansen::DesiredState&) { display_str += " Shinkansen"; },
+        [&](const BalanceBoard::DesiredState&) { display_str += " Balance Board"; },
         [](const auto& arg) {
           static_assert(std::is_same_v<std::monostate, std::decay_t<decltype(arg)>>,
                         "unimplemented extension");
