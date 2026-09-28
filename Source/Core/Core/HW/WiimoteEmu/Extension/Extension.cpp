@@ -134,16 +134,6 @@ void BalanceBoard::BuildDesiredExtensionState(DesiredExtensionState* target_stat
         static_cast<u8>(std::lround(std::clamp(value, ControlState(0.0), ControlState(1.0)) * 255.0));
   }
 
-  ControlState button = m_button->controls.front()->GetState();
-  if (m_input_override_function)
-  {
-    if (auto override_value =
-            m_input_override_function(m_button->name, m_button->controls.front()->name, button))
-    {
-      button = *override_value;
-    }
-  }
-  state.button = button > 0.5 ? 1 : 0;
 }
 
 u16 BalanceBoard::WeightToRaw(size_t sensor, double weight_kg)
@@ -178,9 +168,23 @@ void BalanceBoard::Update(const DesiredExtensionState& target_state)
   }
   m_registers[8] = 0x19;
   m_registers[9] = 0x00;
-  m_registers[10] = desired_state.battery_level;
+  m_registers[10] = m_battery_level;
   m_registers[0x60] = 0x19;
   m_registers[0x61] = 0x01;
+}
+
+bool BalanceBoard::GetButtonState()
+{
+  ControlState value = m_button->controls.front()->GetState();
+  if (m_input_override_function)
+  {
+    if (auto override_value =
+            m_input_override_function(m_button->name, m_button->controls.front()->name, value))
+    {
+      value = *override_value;
+    }
+  }
+  return value > 0.5;
 }
 
 void BalanceBoard::Reset()
