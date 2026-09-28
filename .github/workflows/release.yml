@@ -108,13 +108,21 @@ jobs:
             "Fin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z" `
             "${{ github.workspace }}\build\release\${{ matrix.arch }}\Binaries\*"
 
+          7z a `
+            -tzip `
+            "Fin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.zip" `
+            "${{ github.workspace }}\build\release\${{ matrix.arch }}\Binaries\*"
+
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
-          path: Fin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z
+          path: |
+            Fin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.7z
+            Fin-${{ env.RELEASE_TAG }}-Windows-${{ matrix.arch }}.zip
           if-no-files-found: error
           retention-days: 14
+
 
   macos:
     name: Fin macOS Universal
@@ -211,7 +219,10 @@ jobs:
           find release-assets -type f -maxdepth 2 -print
           test -f "release-assets/Fin-${RELEASE_TAG}-Windows-x64.7z"
           test -f "release-assets/Fin-${RELEASE_TAG}-Windows-arm64.7z"
+          test -f "release-assets/Fin-${RELEASE_TAG}-Windows-x64.zip"
+          test -f "release-assets/Fin-${RELEASE_TAG}-Windows-arm64.zip"
           test -f "release-assets/Fin-${RELEASE_TAG}-macOS-universal.zip"
+
 
       - name: Create or update GitHub release
         env:
@@ -232,9 +243,12 @@ jobs:
           gh release upload "${RELEASE_TAG}" \
             release-assets/Fin-"${RELEASE_TAG}"-Windows-x64.7z \
             release-assets/Fin-"${RELEASE_TAG}"-Windows-arm64.7z \
+            release-assets/Fin-"${RELEASE_TAG}"-Windows-x64.zip \
+            release-assets/Fin-"${RELEASE_TAG}"-Windows-arm64.zip \
             release-assets/Fin-"${RELEASE_TAG}"-macOS-universal.zip \
             --repo "${GITHUB_REPOSITORY}" \
             --clobber
+
 
           gh release edit "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
