@@ -5,13 +5,17 @@ update flow.
 ## NVDEMU/dolphin fork behavior
 
 This fork uses GitHub Releases instead of Dolphin's hosted update service. The update checker
-queries the latest published release for `NVDEMU/dolphin`. When a newer release is found, Dolphin
-shows its release notes and can open the GitHub release page for download.
+queries the latest published release for `NVDEMU/dolphin`, reads its exact `target_commitish`,
+and selects the platform-specific ZIP asset for that release.
+
+The in-app updater downloads that ZIP directly from the GitHub release asset, waits for Fin to exit,
+extracts the package, replaces the installed files/app bundle, and restarts Fin. The commit SHA shown
+in the update dialog is the commit that the release package was built from.
 
 The fork's GitHub Actions release workflow builds Windows x64, Windows ARM64, and a macOS
-universal application, then publishes those artifacts to a GitHub Release. The fork does not use
-Dolphin's private manifest-signing key or hosted content store, so the in-app update action opens
-the release page rather than attempting a manifest-based self-install.
+universal application. Windows releases publish both the existing 7z archives and ZIP packages;
+the ZIP packages are used by the in-app updater. The rolling `nightly` release is retargeted to
+the current build commit on every successful publish.
 
 
 ## General notes:
