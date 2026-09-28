@@ -561,12 +561,6 @@ void Wiimote::BuildDesiredWiimoteState(DesiredWiimoteState* target_state,
     target_state->camera_points = DesiredWiimoteState::DEFAULT_CAMERA;
     target_state->motion_plus = std::nullopt;
 
-    if (auto* board = std::get_if<BalanceBoard::DesiredState>(&target_state->extension.data))
-    {
-      board->sensor_weight = std::get<BalanceBoard::DesiredState>(target_state->extension.data)
-                                 .sensor_weight;
-    }
-
     auto* const board = static_cast<BalanceBoard*>(
         m_attachments->GetAttachmentList()[ExtensionNumber::BALANCE_BOARD].get());
     board->SetBatteryLevel(
