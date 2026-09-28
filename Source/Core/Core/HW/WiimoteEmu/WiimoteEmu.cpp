@@ -563,11 +563,15 @@ void Wiimote::BuildDesiredWiimoteState(DesiredWiimoteState* target_state,
 
     if (auto* board = std::get_if<BalanceBoard::DesiredState>(&target_state->extension.data))
     {
-      board->button = board->button ? 1 : 0;
-      board->battery_level = static_cast<u8>(
-          std::clamp(std::lround(m_battery_setting.GetValue() * 2.55), 0L, 255L));
-      target_state->buttons.a = board->button != 0;
+      board->sensor_weight = std::get<BalanceBoard::DesiredState>(target_state->extension.data)
+                                 .sensor_weight;
     }
+
+    auto* const board = static_cast<BalanceBoard*>(
+        m_attachments->GetAttachmentList()[ExtensionNumber::BALANCE_BOARD].get());
+    board->SetBatteryLevel(
+        static_cast<u8>(std::clamp(std::lround(m_battery_setting.GetValue() * 2.55), 0L, 255L)));
+    target_state->buttons.a = board->GetButtonState();
   }
 }
 
