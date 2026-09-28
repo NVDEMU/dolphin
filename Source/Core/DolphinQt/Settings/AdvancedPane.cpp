@@ -10,6 +10,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPushButton>
 #include <QRadioButton>
 #include <QSignalBlocker>
 #include <QTimeZone>
@@ -163,6 +164,12 @@ void AdvancedPane::CreateLayout()
   m_cpu_label->setFixedWidth(label_width);
   m_cpu_label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   cpu_clock_override_slider_layout->addWidget(m_cpu_label);
+
+  auto* const reset_cpu_clock = new QPushButton(tr("Reset to 100%"));
+  cpu_clock_override_slider_layout->addWidget(reset_cpu_clock);
+  connect(reset_cpu_clock, &QPushButton::clicked, this, [this] {
+    m_cpu_clock_override_slider->setValue(99);
+  });
 
   std::function<void()> cpu_text = [this]() {
     const float multi = Config::Get(Config::MAIN_OVERCLOCK);
