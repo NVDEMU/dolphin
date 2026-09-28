@@ -448,9 +448,9 @@ void GeneralPane::AddDescriptions()
   static constexpr char TR_FIN_GAME_ACCURACY_DESCRIPTION[] =
       QT_TR_NOOP("Enables small Fin-specific game accuracy fixes. Currently this includes an "
                  "accuracy profile for Wii Sports Resort that disables Dual Core when no "
-                 "per-game CPU-thread override is present."<br><br>"
+                 "per-game CPU-thread override is present.<br><br>"
                  "The profile is applied only when starting supported games and does not "
-                 "change your global Dual Core setting."<br><br>"
+                 "change your global Dual Core setting.<br><br>"
                  "<dolphin_emphasis>If unsure, leave this checked.</dolphin_emphasis>");
   m_checkbox_fin_game_accuracy->SetDescription(tr(TR_FIN_GAME_ACCURACY_DESCRIPTION));
 
