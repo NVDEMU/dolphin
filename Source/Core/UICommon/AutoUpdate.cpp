@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
+#include <filesystem>
 #include <string>
 
 #include <fmt/format.h>
