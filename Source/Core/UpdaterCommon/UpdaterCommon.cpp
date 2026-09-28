@@ -818,6 +818,9 @@ struct Options
   std::string next_manifest_url;
   std::string content_store_url;
   std::string install_base_path;
+  std::optional<std::string> package_url;
+  std::optional<std::string> package_name;
+  std::optional<std::string> package_commit;
   std::optional<std::string> binary_to_restart;
   std::optional<u32> parent_pid;
   std::optional<std::string> log_file;
@@ -842,6 +845,18 @@ static std::optional<Options> ParseCommandLine(std::vector<std::string>& args)
       .dest("content-store-url")
       .help("Base URL of the content store where files to download are stored.")
       .metavar("URL");
+  parser.add_option("--package-url")
+      .dest("package-url")
+      .help("Direct Fin update package URL.")
+      .metavar("URL");
+  parser.add_option("--package-name")
+      .dest("package-name")
+      .help("Filename of the direct Fin update package.")
+      .metavar("NAME");
+  parser.add_option("--package-commit")
+      .dest("package-commit")
+      .help("Git commit contained in the direct Fin update package.")
+      .metavar("HASH");
   parser.add_option("--install-base-path")
       .dest("install-base-path")
       .help("Base path of the Dolphin install to be updated.")
@@ -865,21 +880,39 @@ static std::optional<Options> ParseCommandLine(std::vector<std::string>& args)
 
   Options opts;
 
-  // Required arguments.
-  std::vector<std::string> required{"this-manifest-url", "next-manifest-url", "content-store-url",
-                                    "install-base-path"};
-  for (const auto& req : required)
+  // The install path is always required. Fin can use either the direct package updater or
+  // Dolphin's legacy manifest updater.
+  if (!options.is_set("install-base-path"))
   {
-    if (!options.is_set(req))
-    {
-      parser.print_help();
-      return {};
-    }
+    parser.print_help();
+    return {};
   }
-  opts.this_manifest_url = options["this-manifest-url"];
-  opts.next_manifest_url = options["next-manifest-url"];
-  opts.content_store_url = options["content-store-url"];
+
   opts.install_base_path = options["install-base-path"];
+
+  if (options.is_set("package-url"))
+    opts.package_url = options["package-url"];
+  if (options.is_set("package-name"))
+    opts.package_name = options["package-name"];
+  if (options.is_set("package-commit"))
+    opts.package_commit = options["package-commit"];
+
+  const bool package_mode = opts.package_url.has_value();
+  if (!package_mode)
+  {
+    for (const auto& req : {"this-manifest-url", "next-manifest-url", "content-store-url"})
+    {
+      if (!options.is_set(req))
+      {
+        parser.print_help();
+        return {};
+      }
+    }
+
+    opts.this_manifest_url = options["this-manifest-url"];
+    opts.next_manifest_url = options["next-manifest-url"];
+    opts.content_store_url = options["content-store-url"];
+  }
 
   // Optional arguments.
   if (options.is_set("binary-to-restart"))
