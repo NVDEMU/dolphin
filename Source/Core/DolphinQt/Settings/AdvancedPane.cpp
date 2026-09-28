@@ -10,6 +10,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPushButton>
 #include <QRadioButton>
 #include <QSignalBlocker>
 #include <QTimeZone>
