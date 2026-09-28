@@ -48,12 +48,15 @@ void Updater::OnUpdateAvailable(const NewVersionInformation& info)
     dialog->setAttribute(Qt::WA_DeleteOnClose, true);
     dialog->setWindowTitle(tr("Update available"));
 
+    const QString commit = QString::fromStdString(info.new_hash.substr(0, std::min<size_t>(8, info.new_hash.size())));
     auto* label = new QLabel(
         tr("<h2>A new version of Fin is available!</h2>"
-           "Fin %1 is available on GitHub.<br>"
-           "You are running %2.<br><br>"
+           "Fin %1 is ready to download directly from Fin.<br>"
+           "Update commit: <code>%2</code><br>"
+           "You are running %3.<br><br>"
            "<h4>Release Notes:</h4>")
             .arg(QString::fromStdString(info.new_shortrev))
+            .arg(commit)
             .arg(QString::fromStdString(Common::GetScmDescStr())));
     label->setTextFormat(Qt::RichText);
 
@@ -67,7 +70,8 @@ void Updater::OnUpdateAvailable(const NewVersionInformation& info)
     auto* disable_btn =
         buttons->addButton(tr("Disable Automatic Checks"), QDialogButtonBox::DestructiveRole);
     buttons->addButton(tr("Remind Me Later"), QDialogButtonBox::RejectRole);
-    buttons->addButton(tr("Open GitHub Release"), QDialogButtonBox::AcceptRole);
+    auto* install_btn = buttons->addButton(tr("Download and Install"), QDialogButtonBox::AcceptRole);
+    auto* open_release_btn = buttons->addButton(tr("Open GitHub Release"), QDialogButtonBox::ActionRole);
 
     auto* layout = new QVBoxLayout;
     dialog->setLayout(layout);
@@ -83,15 +87,18 @@ void Updater::OnUpdateAvailable(const NewVersionInformation& info)
 
     connect(buttons, &QDialogButtonBox::accepted, dialog, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+    connect(open_release_btn, &QPushButton::clicked, m_parent, [this, release_url = info.release_url] {
+      if (!QDesktopServices::openUrl(QUrl(QString::fromStdString(release_url))))
+      {
+        QMessageBox::warning(m_parent, tr("Unable to Open Release"),
+                              tr("Fin could not open the GitHub release page."));
+      }
+    });
 
     if (dialog->exec() == QDialog::Accepted)
     {
-      const bool opened = QDesktopServices::openUrl(QUrl(QString::fromStdString(info.release_url)));
-      if (!opened)
-      {
-        QMessageBox::warning(m_parent, tr("Unable to Open Release"),
-                              tr("Dolphin could not open the GitHub release page."));
-      }
+      AutoUpdateChecker::TriggerUpdate(info, AutoUpdateChecker::RestartMode::RESTART_AFTER_UPDATE);
+      install_btn->setEnabled(false);
     }
 
     return 0;
