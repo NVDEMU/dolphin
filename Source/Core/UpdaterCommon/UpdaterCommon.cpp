@@ -281,7 +281,7 @@ static bool PlatformVersionCheck(const std::vector<TodoList::UpdateOp>& to_updat
 static std::string ShellQuote(const std::string& value)
 {
 #ifdef _WIN32
-  std::string result = """;
+  std::string result = "\"";
   for (const char c : value)
   {
     if (c == '"')
@@ -314,7 +314,7 @@ static bool RunExtractionCommand(const std::string& archive_path, const std::str
       fmt::format("/usr/bin/ditto -x -k {} {}", ShellQuote(archive_path), ShellQuote(output_path));
 #endif
 
-  LogToFile("Extracting update package with: %s\\n", command.c_str());
+  LogToFile("Extracting update package with: %s\n", command.c_str());
   return std::system(command.c_str()) == 0;
 }
 
@@ -329,11 +329,11 @@ static bool DownloadPackage(const std::string& package_url, const std::string& p
       {"User-Agent", "Fin-NVDEMU-Updater"},
   };
 
-  LogToFile("Downloading package %s ...\\n", package_url.c_str());
+  LogToFile("Downloading package %s ...\n", package_url.c_str());
   auto resp = req.Get(package_url, headers);
   if (!resp)
   {
-    LogToFile("Package download failed with HTTP status %ld.\\n",
+    LogToFile("Package download failed with HTTP status %ld.\n",
               req.GetLastResponseCode());
     return false;
   }
@@ -341,7 +341,7 @@ static bool DownloadPackage(const std::string& package_url, const std::string& p
   File::IOFile output;
   if (!output.Open(package_path, "wb"))
   {
-    LogToFile("Could not open package destination %s.\\n", package_path.c_str());
+    LogToFile("Could not open package destination %s.\n", package_path.c_str());
     return false;
   }
 
@@ -399,9 +399,16 @@ static bool PerformPackageUpdate(const std::string& package_url, const std::stri
                                  const std::string& install_base_path,
                                  const std::string& temp_dir)
 {
-  LogToFile("Starting Fin package update.\\n");
-  LogToFile("Package: %s\\n", package_name.c_str());
-  LogToFile("Commit: %s\\n", package_commit.c_str());
+  LogToFile("Starting Fin package update.\n");
+  LogToFile("Package: %s\n", package_name.c_str());
+  LogToFile("Commit: %s\n", package_commit.c_str());
+
+  if (package_name.empty() ||
+      std::filesystem::path(package_name).filename().string() != package_name)
+  {
+    LogToFile("Invalid update package filename.\n");
+    return false;
+  }
 
   const std::string package_path = temp_dir + DIR_SEP + package_name;
   if (!DownloadPackage(package_url, package_path))
@@ -414,7 +421,7 @@ static bool PerformPackageUpdate(const std::string& package_url, const std::stri
   UI::SetDescription("Extracting Fin update...");
   if (!RunExtractionCommand(package_path, extract_path))
   {
-    LogToFile("Could not extract update package.\\n");
+    LogToFile("Could not extract update package.\n");
     return false;
   }
 
@@ -424,7 +431,7 @@ static bool PerformPackageUpdate(const std::string& package_url, const std::stri
 
   if (!std::filesystem::is_directory(source_app))
   {
-    LogToFile("Update package does not contain Fin.app.\\n");
+    LogToFile("Update package does not contain Fin.app.\n");
     return false;
   }
 
@@ -441,7 +448,7 @@ static bool PerformPackageUpdate(const std::string& package_url, const std::stri
       fmt::format("/usr/bin/ditto {} {}", ShellQuote(source_app.string()), ShellQuote(install_app.string()));
   if (std::system(command.c_str()) != 0)
   {
-    LogToFile("Could not install the new Fin.app.\\n");
+    LogToFile("Could not install the new Fin.app.\n");
     return false;
   }
 
@@ -998,7 +1005,7 @@ bool RunUpdater(std::vector<std::string> args)
     const bool ok = PerformPackageUpdate(*opts.package_url, *opts.package_name,
                                           opts.package_commit.value_or(""), opts.install_base_path,
                                           temp_dir);
-    File::DeleteDir(temp_dir);
+    File::DeleteDirRecursively(temp_dir);
     if (!ok)
     {
       FatalError("Failed to download or install the Fin update.");
