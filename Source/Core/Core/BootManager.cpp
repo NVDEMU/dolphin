@@ -41,6 +41,7 @@
 #include "Core/WiiRoot.h"
 
 #include "DiscIO/Enums.h"
+#include "VideoCommon/OnScreenDisplay.h"
 
 namespace BootManager
 {
@@ -75,6 +76,15 @@ bool BootCore(Core::System& system, std::unique_ptr<BootParameters> boot,
           File::DeleteDirRecursively(movie_path);
       }
     }
+  }
+
+  if (Config::Get(Config::MAIN_FIN_GAME_ACCURACY) &&
+      StartUp.GetGameID().rfind("RZT", 0) == 0 &&
+      Config::GetActiveLayerForConfig(Config::MAIN_CPU_THREAD) == Config::LayerType::Base)
+  {
+    Config::SetCurrent(Config::MAIN_CPU_THREAD, false);
+    OSD::AddMessage("Fin accuracy profile: Wii Sports Resort single-core mode enabled.",
+                    OSD::Duration::NORMAL);
   }
 
   if (NetPlay::IsNetPlayRunning())

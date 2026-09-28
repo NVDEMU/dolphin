@@ -88,6 +88,7 @@ void GeneralPane::OnEmulationStateChanged(Core::State state)
   const bool running = state != Core::State::Uninitialized;
 
   m_checkbox_dualcore->setEnabled(!running);
+  m_checkbox_fin_game_accuracy->setEnabled(!running);
   m_checkbox_cheats->setEnabled(!running);
   m_checkbox_load_games_into_memory->setEnabled(!running);
   m_checkbox_override_region_settings->setEnabled(!running);
@@ -142,6 +143,10 @@ void GeneralPane::CreateBasic()
 
   m_checkbox_dualcore = new ConfigBool(tr("Enable Dual Core (speedhack)"), Config::MAIN_CPU_THREAD);
   basic_group_layout->addWidget(m_checkbox_dualcore);
+
+  m_checkbox_fin_game_accuracy =
+      new ConfigBool(tr("Enable Fin Game Accuracy Enhancements"), Config::MAIN_FIN_GAME_ACCURACY);
+  basic_group_layout->addWidget(m_checkbox_fin_game_accuracy);
 
   m_checkbox_cheats = new ConfigBool(tr("Enable Cheats"), Config::MAIN_ENABLE_CHEATS);
   basic_group_layout->addWidget(m_checkbox_cheats);
@@ -439,6 +444,15 @@ void GeneralPane::AddDescriptions()
 #endif
 
   m_checkbox_dualcore->SetDescription(tr(TR_DUALCORE_DESCRIPTION));
+
+  static constexpr char TR_FIN_GAME_ACCURACY_DESCRIPTION[] =
+      QT_TR_NOOP("Enables small Fin-specific game accuracy fixes. Currently this includes an "
+                 "accuracy profile for Wii Sports Resort that disables Dual Core when no "
+                 "per-game CPU-thread override is present."<br><br>"
+                 "The profile is applied only when starting supported games and does not "
+                 "change your global Dual Core setting."<br><br>"
+                 "<dolphin_emphasis>If unsure, leave this checked.</dolphin_emphasis>");
+  m_checkbox_fin_game_accuracy->SetDescription(tr(TR_FIN_GAME_ACCURACY_DESCRIPTION));
 
   m_checkbox_cheats->SetDescription(tr(TR_CHEATS_DESCRIPTION));
 
