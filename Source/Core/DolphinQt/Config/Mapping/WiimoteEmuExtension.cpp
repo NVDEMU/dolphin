@@ -23,6 +23,7 @@
 #include "Core/HW/WiimoteEmu/Extension/UDrawTablet.h"
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 
+#include "InputCommon/ControllerEmu/ControlGroup/ControlGroup.h"
 #include "InputCommon/InputConfig.h"
 
 WiimoteEmuExtension::WiimoteEmuExtension(MappingWindow* window) : MappingWidget(window)
