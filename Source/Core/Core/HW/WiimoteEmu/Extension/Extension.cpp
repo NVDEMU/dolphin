@@ -133,7 +133,6 @@ void BalanceBoard::BuildDesiredExtensionState(DesiredExtensionState* target_stat
     state.sensor_weight[i] =
         static_cast<u8>(std::lround(std::clamp(value, ControlState(0.0), ControlState(1.0)) * 255.0));
   }
-
 }
 
 u16 BalanceBoard::WeightToRaw(size_t sensor, double weight_kg)
