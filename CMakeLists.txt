@@ -199,7 +199,15 @@ if(ENABLE_CCACHE)
 endif()
 
 # Architecture detection and arch specific settings
-message(STATUS "Detected architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+# On Windows ARM64 cross-compiles, some Visual Studio/CMake configurations
+# report the host processor (AMD64) even though ARCH selects the target.
+# Prefer the explicit ARCH cache variable when available.
+if(DEFINED ARCH AND NOT ARCH STREQUAL "generic")
+  set(DOLPHIN_TARGET_ARCH "${ARCH}")
+else()
+  set(DOLPHIN_TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+message(STATUS "Detected target architecture: ${DOLPHIN_TARGET_ARCH}")
 
 # Detect 64bit or 32bit
 # CMake doesn't provide a simple way to determine 32bit or 64bit
@@ -220,11 +228,11 @@ if(ENABLE_GENERIC)
   message(STATUS "Warning! Building generic build!")
   set(_M_GENERIC 1)
   add_definitions(-D_M_GENERIC=1)
-elseif(_ARCH_64 AND CMAKE_SYSTEM_PROCESSOR MATCHES "x64|x86_64|amd64|AMD64")
+elseif(_ARCH_64 AND DOLPHIN_TARGET_ARCH MATCHES "x64|x86_64|amd64|AMD64")
   set(_M_X86_64 1)
   add_definitions(-D_M_X86_64=1)
   check_and_add_flag(HAVE_SSE2 -msse2)
-elseif(_ARCH_64 AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
+elseif(_ARCH_64 AND DOLPHIN_TARGET_ARCH MATCHES "aarch64|arm64|ARM64")
   set(_M_ARM_64 1)
   add_definitions(-D_M_ARM_64=1)
   # CRC instruction set is used in the CRC32 hash function
