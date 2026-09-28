@@ -11,8 +11,8 @@
 #include <QLabel>
 
 #include "Core/HW/Wiimote.h"
-#include "Core/HW/WiimoteEmu/Extension/Extension.h"
 #include "Core/HW/WiimoteEmu/Extension/Classic.h"
+#include "Core/HW/WiimoteEmu/Extension/Extension.h"
 #include "Core/HW/WiimoteEmu/Extension/DrawsomeTablet.h"
 #include "Core/HW/WiimoteEmu/Extension/Drums.h"
 #include "Core/HW/WiimoteEmu/Extension/Guitar.h"
@@ -79,7 +79,7 @@ void WiimoteEmuExtension::CreateBalanceBoardLayout()
     const bool button_pressed = button_group->controls.front()->GetState() > 0.5;
 
     m_balance_board_status->setText(
-        tr("Live weight: TL %1 kg | TR %2 kg | BL %3 kg | BR %4 kg\\n"
+        tr("Live weight: TL %1 kg | TR %2 kg | BL %3 kg | BR %4 kg\n"
            "Total: %5 kg (%6 lb) | Board button: %7")
             .arg(top_left, 0, 'f', 1)
             .arg(top_right, 0, 'f', 1)
