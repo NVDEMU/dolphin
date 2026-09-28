@@ -3,6 +3,7 @@
 
 #include "UICommon/AutoUpdate.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdlib>
 #include <string>
@@ -268,7 +269,6 @@ void AutoUpdateChecker::CheckForUpdate(std::string_view update_track,
   }
 
   const std::string latest_tag = NormalizeReleaseTag(tag_it->second.get<std::string>());
-  const std::string current_tag = NormalizeReleaseTag(Common::GetScmDescStr());
 
   // Releases are only useful to this updater when they have a version identifier.
   if (latest_tag.empty())
@@ -356,8 +356,16 @@ void AutoUpdateChecker::TriggerUpdate(const AutoUpdateChecker::NewVersionInforma
   updater_flags["this-manifest-url"] = info.this_manifest_url;
   updater_flags["next-manifest-url"] = info.next_manifest_url;
   updater_flags["content-store-url"] = info.content_store_url;
+  updater_flags["package-url"] = info.package_url;
+  updater_flags["package-name"] = info.package_name;
+  updater_flags["package-commit"] = info.new_hash;
   updater_flags["parent-pid"] = std::to_string(GetOwnProcessId());
+#ifdef __APPLE__
+  updater_flags["install-base-path"] =
+      std::filesystem::path(File::GetBundleDirectory()).parent_path().string();
+#else
   updater_flags["install-base-path"] = File::GetExeDirectory();
+#endif
   updater_flags["log-file"] = File::GetUserPath(D_LOGS_IDX) + UPDATER_LOG_FILE;
 
   if (restart_mode == RestartMode::RESTART_AFTER_UPDATE)
