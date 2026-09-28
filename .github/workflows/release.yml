@@ -82,6 +82,7 @@ jobs:
             --fresh `
             -DENABLE_AUTOUPDATE=ON `
             -DDOLPHIN_DEFAULT_UPDATE_TRACK=github `
+            -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.arch }} `
             -DDISTRIBUTOR=Fin
 
       - name: Build
@@ -168,9 +169,9 @@ jobs:
       - name: Verify .app bundle
         run: |
           test -d "build-macos/universal/Fin.app"
-          test -x "build-macos/universal/Fin.app/Contents/MacOS/DolphinQt"
-          /usr/bin/file "build-macos/universal/Fin.app/Contents/MacOS/DolphinQt"
-          /usr/bin/lipo -info "build-macos/universal/Fin.app/Contents/MacOS/DolphinQt"
+          test -x "build-macos/universal/Fin.app/Contents/MacOS/Dolphin"
+          /usr/bin/file "build-macos/universal/Fin.app/Contents/MacOS/Dolphin"
+          /usr/bin/lipo -info "build-macos/universal/Fin.app/Contents/MacOS/Dolphin"
           /usr/bin/codesign --verify --deep --strict --verbose=2 "build-macos/universal/Fin.app"
 
       - name: Package .app

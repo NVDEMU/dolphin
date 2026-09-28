@@ -152,25 +152,6 @@ bool AutoUpdateChecker::SystemSupportsAutoUpdates()
 #endif
 }
 
-static std::string GetPlatformID()
-{
-#if defined(_WIN32)
-#if defined(_M_ARM_64)
-  return "win-arm64";
-#else
-  return "win";
-#endif
-#elif defined(__APPLE__)
-#if defined(MACOS_UNIVERSAL_BUILD)
-  return "macos-universal";
-#else
-  return "macos";
-#endif
-#else
-  return "unknown";
-#endif
-}
-
 static std::string GetUpdateRepository()
 {
   auto repository = std::getenv("DOLPHIN_UPDATE_REPOSITORY");

@@ -8,7 +8,7 @@ endif()
 if(ARCH STREQUAL "generic")
     set(ENABLE_GENERIC "ON")
 else()
-    set(CMAKE_SYSTEM_PROCESSOR "${ARCH}")
+    set(CMAKE_SYSTEM_PROCESSOR "${ARCH}" CACHE STRING "Target architecture" FORCE)
 endif()
 
 if (NOT DEFINED CMAKE_SYSTEM_NAME)
