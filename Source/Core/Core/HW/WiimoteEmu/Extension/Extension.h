@@ -80,7 +80,7 @@ public:
 
   struct DesiredState
   {
-    std::array<u8, 4> sensor_weight;
+    std::array<u8, 4> sensor_weight{};
   };
 
   BalanceBoard();
@@ -90,6 +90,9 @@ public:
   void Reset() override;
   void DoState(PointerWrap& p) override;
   void LoadDefaults() override;
+
+  bool GetButtonState();
+  void SetBatteryLevel(u8 level) { m_battery_level = level; }
 
   ControllerEmu::ControlGroup* GetGroup(BalanceBoardGroup group);
 
@@ -101,6 +104,7 @@ private:
   ControllerEmu::Buttons* m_button;
   std::array<ControllerEmu::ControlGroup*, 4> m_sensor_groups;
   std::array<u8, 0x100> m_registers{};
+  u8 m_battery_level = 0x95;
 };
 
 class EncryptedExtension : public Extension

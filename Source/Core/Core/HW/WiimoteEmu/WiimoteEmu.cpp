@@ -29,6 +29,7 @@
 #include "Core/HW/WiimoteEmu/DesiredWiimoteState.h"
 #include "Core/HW/WiimoteEmu/Extension/Classic.h"
 #include "Core/HW/WiimoteEmu/Extension/DesiredExtensionState.h"
+#include "Core/HW/WiimoteEmu/Extension/Extension.h"
 #include "Core/HW/WiimoteEmu/Extension/DrawsomeTablet.h"
 #include "Core/HW/WiimoteEmu/Extension/Drums.h"
 #include "Core/HW/WiimoteEmu/Extension/Guitar.h"
@@ -551,6 +552,21 @@ void Wiimote::BuildDesiredWiimoteState(DesiredWiimoteState* target_state,
   static_cast<Extension*>(
       m_attachments->GetAttachmentList()[m_attachments->GetSelectedAttachment()].get())
       ->BuildDesiredExtensionState(&target_state->extension);
+
+  if (m_index == WIIMOTE_BALANCE_BOARD)
+  {
+    // A Balance Board has only one core button (A), and no meaningful Wiimote motion/IR input.
+    target_state->buttons.hex = 0;
+    target_state->acceleration = DesiredWiimoteState::DEFAULT_ACCELERATION;
+    target_state->camera_points = DesiredWiimoteState::DEFAULT_CAMERA;
+    target_state->motion_plus = std::nullopt;
+
+    auto* const board = static_cast<BalanceBoard*>(
+        m_attachments->GetAttachmentList()[ExtensionNumber::BALANCE_BOARD].get());
+    board->SetBatteryLevel(
+        static_cast<u8>(std::clamp(std::lround(m_battery_setting.GetValue() * 2.55), 0L, 255L)));
+    target_state->buttons.a = board->GetButtonState();
+  }
 }
 
 u8 Wiimote::GetWiimoteDeviceIndex() const
