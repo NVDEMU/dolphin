@@ -4,6 +4,8 @@
 #include "UpdaterCommon/UpdaterCommon.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <filesystem>
 #include <array>
 #include <memory>
 #include <optional>
@@ -274,6 +276,210 @@ static bool PlatformVersionCheck(const std::vector<TodoList::UpdateOp>& to_updat
 {
   UI::SetDescription("Checking platform...");
   return Platform::VersionCheck(to_update, install_base_path, temp_dir);
+}
+
+static std::string ShellQuote(const std::string& value)
+{
+#ifdef _WIN32
+  std::string result = """;
+  for (const char c : value)
+  {
+    if (c == '"')
+      result += '\\';
+    result += c;
+  }
+  result += '"';
+  return result;
+#else
+  std::string result = "'";
+  for (const char c : value)
+  {
+    if (c == '\'')
+      result += "'\\''";
+    else
+      result += c;
+  }
+  result += "'";
+  return result;
+#endif
+}
+
+static bool RunExtractionCommand(const std::string& archive_path, const std::string& output_path)
+{
+#ifdef _WIN32
+  const std::string command =
+      fmt::format("tar -xf {} -C {}", ShellQuote(archive_path), ShellQuote(output_path));
+#else
+  const std::string command =
+      fmt::format("/usr/bin/ditto -x -k {} {}", ShellQuote(archive_path), ShellQuote(output_path));
+#endif
+
+  LogToFile("Extracting update package with: %s\\n", command.c_str());
+  return std::system(command.c_str()) == 0;
+}
+
+static bool DownloadPackage(const std::string& package_url, const std::string& package_path)
+{
+  UI::SetDescription("Downloading Fin update package...");
+  UI::SetCurrentMarquee(false);
+
+  Common::HttpRequest req(std::chrono::seconds(120), ProgressCallback);
+  const Common::HttpRequest::Headers headers = {
+      {"Accept", "application/octet-stream"},
+      {"User-Agent", "Fin-NVDEMU-Updater"},
+  };
+
+  LogToFile("Downloading package %s ...\\n", package_url.c_str());
+  auto resp = req.Get(package_url, headers);
+  if (!resp)
+  {
+    LogToFile("Package download failed with HTTP status %ld.\\n",
+              req.GetLastResponseCode());
+    return false;
+  }
+
+  File::IOFile output;
+  if (!output.Open(package_path, "wb"))
+  {
+    LogToFile("Could not open package destination %s.\\n", package_path.c_str());
+    return false;
+  }
+
+  output.WriteBytes(resp->data(), resp->size());
+  output.Close();
+  UI::SetCurrentMarquee(true);
+  return true;
+}
+
+static bool CopyDirectoryContents(const std::filesystem::path& source,
+                                  const std::filesystem::path& destination)
+{
+  std::error_code ec;
+  std::filesystem::create_directories(destination, ec);
+  if (ec)
+    return false;
+
+  for (const auto& entry : std::filesystem::recursive_directory_iterator(source, ec))
+  {
+    if (ec)
+      return false;
+
+    const auto relative = std::filesystem::relative(entry.path(), source, ec);
+    if (ec)
+      return false;
+
+    const auto target = destination / relative;
+    if (entry.is_directory(ec))
+    {
+      if (ec)
+        return false;
+      std::filesystem::create_directories(target, ec);
+      if (ec)
+        return false;
+    }
+    else if (entry.is_regular_file(ec))
+    {
+      if (ec)
+        return false;
+      std::filesystem::create_directories(target.parent_path(), ec);
+      if (ec)
+        return false;
+      std::filesystem::copy_file(entry.path(), target,
+                                 std::filesystem::copy_options::overwrite_existing, ec);
+      if (ec)
+        return false;
+    }
+  }
+
+  return true;
+}
+
+static bool PerformPackageUpdate(const std::string& package_url, const std::string& package_name,
+                                 const std::string& package_commit,
+                                 const std::string& install_base_path,
+                                 const std::string& temp_dir)
+{
+  LogToFile("Starting Fin package update.\\n");
+  LogToFile("Package: %s\\n", package_name.c_str());
+  LogToFile("Commit: %s\\n", package_commit.c_str());
+
+  const std::string package_path = temp_dir + DIR_SEP + package_name;
+  if (!DownloadPackage(package_url, package_path))
+    return false;
+
+  const std::string extract_path = temp_dir + DIR_SEP + "extracted";
+  if (!File::CreateFullPath(extract_path))
+    return false;
+
+  UI::SetDescription("Extracting Fin update...");
+  if (!RunExtractionCommand(package_path, extract_path))
+  {
+    LogToFile("Could not extract update package.\\n");
+    return false;
+  }
+
+#ifdef __APPLE__
+  const std::filesystem::path source_app = std::filesystem::path(extract_path) / "Fin.app";
+  const std::filesystem::path install_app = std::filesystem::path(install_base_path) / "Fin.app";
+
+  if (!std::filesystem::is_directory(source_app))
+  {
+    LogToFile("Update package does not contain Fin.app.\\n");
+    return false;
+  }
+
+  UI::SetDescription("Installing Fin...");
+  if (std::filesystem::exists(install_app))
+  {
+    const auto backup_app = install_app.string() + ".old";
+    File::DeleteDirRecursively(backup_app);
+    if (!File::Rename(install_app.string(), backup_app))
+      return false;
+  }
+
+  const std::string command =
+      fmt::format("/usr/bin/ditto {} {}", ShellQuote(source_app.string()), ShellQuote(install_app.string()));
+  if (std::system(command.c_str()) != 0)
+  {
+    LogToFile("Could not install the new Fin.app.\\n");
+    return false;
+  }
+
+  File::DeleteDirRecursively(install_app.string() + ".old");
+#else
+  UI::SetDescription("Installing Fin...");
+  const std::filesystem::path install_path = std::filesystem::path(install_base_path);
+
+#ifdef _WIN32
+  const auto self_path = Common::GetModuleName(nullptr);
+  std::filesystem::path self_filename;
+  if (self_path)
+    self_filename = std::filesystem::path(*self_path).filename();
+
+  if (!self_filename.empty())
+  {
+    const auto self_target = install_path / self_filename;
+    if (std::filesystem::exists(self_target))
+    {
+      const auto backup = self_target.string() + ".old";
+      File::Delete(backup, File::IfAbsentBehavior::NoConsoleWarning);
+      if (!File::Rename(self_target.string(), backup))
+        return false;
+    }
+  }
+#endif
+
+  if (!CopyDirectoryContents(std::filesystem::path(extract_path), install_path))
+    return false;
+
+#ifdef _WIN32
+  if (!self_filename.empty())
+    File::Delete((install_path / (self_filename.string() + ".old")).string(),
+                 File::IfAbsentBehavior::NoConsoleWarning);
+#endif
+#endif
+
+  return true;
 }
 
 static TodoList ComputeActionsToDo(Manifest this_manifest, Manifest next_manifest)
