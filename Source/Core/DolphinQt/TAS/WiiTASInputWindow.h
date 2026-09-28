@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "DolphinQt/QtUtils/AspectRatioWidget.h"
 #include "DolphinQt/TAS/TASInputWindow.h"
 
 #include "Core/HW/WiimoteEmu/ExtensionPort.h"
@@ -19,12 +18,8 @@ namespace WiimoteEmu
 {
 class Extension;
 class Wiimote;
+class BalanceBoard;
 }  // namespace WiimoteEmu
-
-namespace ControllerEmu
-{
-class Attachments;
-}
 
 class WiiTASInputWindow : public TASInputWindow
 {
@@ -40,7 +35,6 @@ public:
 
 private:
   WiimoteEmu::Wiimote* GetWiimote();
-  ControllerEmu::Attachments* GetAttachments();
   WiimoteEmu::Extension* GetExtension();
 
   void LoadExtensionAndMotionPlus();
@@ -57,45 +51,30 @@ private:
   InputOverrider m_nunchuk_overrider;
   InputOverrider m_classic_overrider;
 
-  TASCheckBox* m_a_button;
-  TASCheckBox* m_b_button;
-  TASCheckBox* m_1_button;
-  TASCheckBox* m_2_button;
-  TASCheckBox* m_plus_button;
-  TASCheckBox* m_minus_button;
-  TASCheckBox* m_home_button;
-  TASCheckBox* m_left_button;
-  TASCheckBox* m_up_button;
-  TASCheckBox* m_down_button;
-  TASCheckBox* m_right_button;
-  TASCheckBox* m_c_button;
-  TASCheckBox* m_z_button;
-  TASCheckBox* m_classic_a_button;
-  TASCheckBox* m_classic_b_button;
-  TASCheckBox* m_classic_x_button;
-  TASCheckBox* m_classic_y_button;
-  TASCheckBox* m_classic_plus_button;
-  TASCheckBox* m_classic_minus_button;
-  TASCheckBox* m_classic_l_button;
-  TASCheckBox* m_classic_r_button;
-  TASCheckBox* m_classic_zl_button;
-  TASCheckBox* m_classic_zr_button;
-  TASCheckBox* m_classic_home_button;
-  TASCheckBox* m_classic_left_button;
-  TASCheckBox* m_classic_up_button;
-  TASCheckBox* m_classic_down_button;
-  TASCheckBox* m_classic_right_button;
-  TASSpinBox* m_ir_x_value;
-  TASSpinBox* m_ir_y_value;
   QGroupBox* m_remote_accelerometer_box;
   QGroupBox* m_remote_gyroscope_box;
   QGroupBox* m_nunchuk_accelerometer_box;
+  QGroupBox* m_ir_box;
+  QGroupBox* m_nunchuk_stick_box;
+  QGroupBox* m_classic_left_stick_box;
+  QGroupBox* m_classic_right_stick_box;
   QGroupBox* m_remote_buttons_box;
   QGroupBox* m_nunchuk_buttons_box;
   QGroupBox* m_classic_buttons_box;
   QGroupBox* m_triggers_box;
-  AspectRatioWidget* m_ir_box;
-  AspectRatioWidget* m_nunchuk_stick_box;
-  AspectRatioWidget* m_classic_left_stick_box;
-  AspectRatioWidget* m_classic_right_stick_box;
+};
+
+class BalanceBoardTASInputWindow : public TASInputWindow
+{
+public:
+  explicit BalanceBoardTASInputWindow(QWidget* parent);
+
+private:
+  void hideEvent(QHideEvent* event) override;
+  void showEvent(QShowEvent* event) override;
+
+  WiimoteEmu::BalanceBoard* GetBalanceBoard() const;
+
+  InputOverrider m_wiimote_overrider;
+  InputOverrider m_balance_board_overrider;
 };

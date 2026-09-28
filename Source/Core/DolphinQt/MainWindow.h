@@ -16,6 +16,8 @@
 #endif  // USE_RETRO_ACHIEVEMENTS
 
 #include "Core/Boot/Boot.h"
+#include "Core/HW/SI/SI.h"
+#include "Core/HW/Wiimote.h"
 #include "DolphinQt/FIFO/FIFOPlayerWindow.h"
 
 class QMenu;
@@ -31,7 +33,6 @@ class CodeWidget;
 class DiscordHandler;
 class DragEnterEvent;
 class FreeLookWindow;
-class GameCount;
 class GameList;
 class GBATASInputWindow;
 class GCTASInputWindow;
@@ -54,9 +55,7 @@ class SkylanderPortalWindow;
 class ThreadWidget;
 class ToolBar;
 class WatchWidget;
-class WiiTASInputWindow;
 class WiiSpeakWindow;
-class LogitechMicWindow;
 struct WindowSystemInfo;
 
 namespace Core
@@ -92,8 +91,6 @@ public:
 
   bool eventFilter(QObject* object, QEvent* event) override;
   QMenu* createPopupMenu() override;
-
-  void ShowTriforceWindow();
 
 signals:
   void ReadOnlyModeChanged(bool read_only);
@@ -181,7 +178,6 @@ private:
   void ShowSkylanderPortal();
   void ShowInfinityBase();
   void ShowWiiSpeakWindow();
-  void ShowLogitechMicWindow();
   void ShowMemcardManager();
   void ShowResourcePackManager();
   void ShowCheatsManager();
@@ -213,14 +209,11 @@ private:
   void OnActivateChat();
   void OnRequestGolfControl();
   void ShowTASInput();
-  void ShowOSDWindow();
 
   void ChangeDisc();
   void EjectDisc();
 
   void OpenUserFolder();
-  void OpenConfigFolder();
-  void OpenCacheFolder();
 
   QStringList PromptFileNames();
 
@@ -242,7 +235,6 @@ private:
   MenuBar* m_menu_bar;
   SearchBar* m_search_bar;
   GameList* m_game_list;
-  GameCount* m_game_count;
   RenderWidget* m_render_widget = nullptr;
   bool m_rendering_to_main;
   bool m_stop_confirm_showing = false;
@@ -260,7 +252,6 @@ private:
   SkylanderPortalWindow* m_skylander_window = nullptr;
   InfinityBaseWindow* m_infinity_window = nullptr;
   WiiSpeakWindow* m_wii_speak_window = nullptr;
-  LogitechMicWindow* m_logitech_mic_window = nullptr;
   MappingWindow* m_hotkey_window = nullptr;
   FreeLookWindow* m_freelook_window = nullptr;
 
@@ -268,11 +259,10 @@ private:
   NetPlayDialog* m_netplay_dialog;
   DiscordHandler* m_netplay_discord;
   NetPlaySetupDialog* m_netplay_setup_dialog;
-  static constexpr int num_gc_controllers = 4;
+  static constexpr int num_gc_controllers = SerialInterface::MAX_SI_CHANNELS;
   std::array<GCTASInputWindow*, num_gc_controllers> m_gc_tas_input_windows{};
   std::array<GBATASInputWindow*, num_gc_controllers> m_gba_tas_input_windows{};
-  static constexpr int num_wii_controllers = 4;
-  std::array<WiiTASInputWindow*, num_wii_controllers> m_wii_tas_input_windows{};
+  std::array<QDialog*, MAX_BBMOTES> m_wii_tas_input_windows{};
 
 #ifdef USE_RETRO_ACHIEVEMENTS
   AchievementsWindow* m_achievements_window = nullptr;

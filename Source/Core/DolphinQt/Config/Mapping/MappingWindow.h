@@ -41,12 +41,11 @@ public:
     MAPPING_GC_MICROPHONE,
     // Wii
     MAPPING_WIIMOTE_EMU,
+    MAPPING_BALANCE_BOARD_EMU,
     // Hotkeys
     MAPPING_HOTKEYS,
     // Freelook
     MAPPING_FREELOOK,
-    // Triforce
-    MAPPING_AM_BASEBOARD,
   };
 
   explicit MappingWindow(QWidget* parent, Type type, int port_num);
@@ -87,7 +86,6 @@ private:
   void OnDeleteProfilePressed();
   void OnLoadProfilePressed();
   void OnSaveProfilePressed();
-  void OnOpenProfileFolder();
   void UpdateProfileIndex();
   void UpdateProfileButtonState();
   void PopulateProfileSelection();
@@ -118,9 +116,7 @@ private:
   QComboBox* m_profiles_combo;
   QPushButton* m_profiles_load;
   QPushButton* m_profiles_save;
-  QToolButton* m_profile_other_actions;
-  QAction* m_profiles_delete;
-  QAction* m_profiles_open_folder;
+  QPushButton* m_profiles_delete;
 
   // Reset
   QGroupBox* m_reset_box;
