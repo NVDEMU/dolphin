@@ -504,44 +504,49 @@ void Wiimote::BuildDesiredWiimoteState(DesiredWiimoteState* target_state,
   // Data is later accessed in IsSideways and IsUpright
   m_hotkeys->UpdateState();
 
-  // Update our motion simulations.
-  StepDynamics();
+  const bool is_balance_board = m_index == WIIMOTE_BALANCE_BOARD;
 
-  // Fetch pressed buttons from user input.
-  target_state->buttons.hex = 0;
-  m_buttons->GetState(&target_state->buttons.hex, button_bitmasks, m_input_override_function);
-  m_dpad->GetState(&target_state->buttons.hex,
-                   IsSideways() ? dpad_sideways_bitmasks : dpad_bitmasks,
-                   m_input_override_function);
-
-  // Calculate accelerometer state.
-  // Calibration values are 8-bit but we want 10-bit precision, so << 2.
-  target_state->acceleration =
-      ConvertAccelData(GetTotalAcceleration(), ACCEL_ZERO_G << 2, ACCEL_ONE_G << 2);
-
-  // Calculate IR camera state.
-  if (m_ir_passthrough->enabled.GetValue() && m_ir_passthrough->AreInputsBound())
+  if (!is_balance_board)
   {
-    target_state->camera_points = GetPassthroughCameraPoints(m_ir_passthrough);
-  }
-  else if (sensor_bar_state == SensorBarState::Enabled)
-  {
-    target_state->camera_points = CameraLogic::GetCameraPoints(
-        GetTotalTransformation(),
-        Common::Vec2(m_fov_x_setting.GetValue(), m_fov_y_setting.GetValue()) / 360 *
-            float(MathUtil::TAU));
-  }
-  else
-  {
-    // If the sensor bar is off the camera will see no LEDs and return 0xFFs.
-    target_state->camera_points = DesiredWiimoteState::DEFAULT_CAMERA;
-  }
+    // Update our motion simulations.
+    StepDynamics();
 
-  // Calculate MotionPlus state.
-  if (m_motion_plus_setting.GetValue())
-    target_state->motion_plus = MotionPlus::GetGyroscopeData(GetTotalAngularVelocity());
-  else
-    target_state->motion_plus = std::nullopt;
+    // Fetch pressed buttons from user input.
+    target_state->buttons.hex = 0;
+    m_buttons->GetState(&target_state->buttons.hex, button_bitmasks, m_input_override_function);
+    m_dpad->GetState(&target_state->buttons.hex,
+                     IsSideways() ? dpad_sideways_bitmasks : dpad_bitmasks,
+                     m_input_override_function);
+
+    // Calculate accelerometer state.
+    // Calibration values are 8-bit but we want 10-bit precision, so << 2.
+    target_state->acceleration =
+        ConvertAccelData(GetTotalAcceleration(), ACCEL_ZERO_G << 2, ACCEL_ONE_G << 2);
+
+    // Calculate IR camera state.
+    if (m_ir_passthrough->enabled.GetValue() && m_ir_passthrough->AreInputsBound())
+    {
+      target_state->camera_points = GetPassthroughCameraPoints(m_ir_passthrough);
+    }
+    else if (sensor_bar_state == SensorBarState::Enabled)
+    {
+      target_state->camera_points = CameraLogic::GetCameraPoints(
+          GetTotalTransformation(),
+          Common::Vec2(m_fov_x_setting.GetValue(), m_fov_y_setting.GetValue()) / 360 *
+              float(MathUtil::TAU));
+    }
+    else
+    {
+      // If the sensor bar is off the camera will see no LEDs and return 0xFFs.
+      target_state->camera_points = DesiredWiimoteState::DEFAULT_CAMERA;
+    }
+
+    // Calculate MotionPlus state.
+    if (m_motion_plus_setting.GetValue())
+      target_state->motion_plus = MotionPlus::GetGyroscopeData(GetTotalAngularVelocity());
+    else
+      target_state->motion_plus = std::nullopt;
+  }
 
   // Build Extension state. The Balance Board occupies the dedicated fifth HID slot.
   if (m_index == WIIMOTE_BALANCE_BOARD &&
