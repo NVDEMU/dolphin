@@ -240,6 +240,11 @@ jobs:
               --draft
           fi
 
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" -q .id)"
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+            -f target_commitish="${BUILD_REF}" \
+            -f draft=true
+
           gh release upload "${RELEASE_TAG}" \
             release-assets/Fin-"${RELEASE_TAG}"-Windows-x64.7z \
             release-assets/Fin-"${RELEASE_TAG}"-Windows-arm64.7z \
