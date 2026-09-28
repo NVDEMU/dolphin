@@ -948,8 +948,17 @@ bool RunUpdater(std::vector<std::string> args)
       atexit(FlushLog);
   }
 
-  LogToFile("Updating from: %s\n", opts.this_manifest_url.c_str());
-  LogToFile("Updating to:   %s\n", opts.next_manifest_url.c_str());
+  if (opts.package_url)
+  {
+    LogToFile("Installing direct Fin package update.\n");
+    LogToFile("Package: %s\n", opts.package_name.value_or("(unnamed)").c_str());
+    LogToFile("Commit: %s\n", opts.package_commit.value_or("(unknown)").c_str());
+  }
+  else
+  {
+    LogToFile("Updating from: %s\n", opts.this_manifest_url.c_str());
+    LogToFile("Updating to:   %s\n", opts.next_manifest_url.c_str());
+  }
   LogToFile("Install path:  %s\n", opts.install_base_path.c_str());
 
   if (!File::IsDirectory(opts.install_base_path))
@@ -970,6 +979,46 @@ bool RunUpdater(std::vector<std::string> args)
   }
 
   UI::SetVisible(true);
+
+  if (opts.package_url)
+  {
+    if (!opts.package_name || opts.package_name->empty())
+    {
+      FatalError("Update package filename is missing. Aborting.");
+      return false;
+    }
+
+    std::string temp_dir = File::CreateTempDir();
+    if (temp_dir.empty())
+    {
+      FatalError("Could not create temporary directory. Aborting.");
+      return false;
+    }
+
+    const bool ok = PerformPackageUpdate(*opts.package_url, *opts.package_name,
+                                          opts.package_commit.value_or(""), opts.install_base_path,
+                                          temp_dir);
+    File::DeleteDir(temp_dir);
+    if (!ok)
+    {
+      FatalError("Failed to download or install the Fin update.");
+      return false;
+    }
+
+    UI::ResetCurrentProgress();
+    UI::ResetTotalProgress();
+    UI::SetCurrentMarquee(false);
+    UI::SetTotalMarquee(false);
+    UI::SetCurrentProgress(1, 1);
+    UI::SetTotalProgress(1, 1);
+    UI::SetDescription("Done!");
+    UI::Sleep(1);
+
+    if (opts.binary_to_restart)
+      UI::LaunchApplication(*opts.binary_to_restart);
+
+    return true;
+  }
 
   UI::SetDescription("Fetching and parsing manifests...");
 
