@@ -3,6 +3,7 @@
 
 #include "DolphinQt/Updater.h"
 
+#include <algorithm>
 #include <utility>
 
 #include <QDesktopServices>
