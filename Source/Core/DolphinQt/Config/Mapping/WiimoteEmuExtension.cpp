@@ -3,12 +3,15 @@
 
 #include "DolphinQt/Config/Mapping/WiimoteEmuExtension.h"
 
+#include <algorithm>
+
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 
 #include "Core/HW/Wiimote.h"
+#include "Core/HW/WiimoteEmu/Extension/Extension.h"
 #include "Core/HW/WiimoteEmu/Extension/Classic.h"
 #include "Core/HW/WiimoteEmu/Extension/DrawsomeTablet.h"
 #include "Core/HW/WiimoteEmu/Extension/Drums.h"
@@ -54,6 +57,39 @@ void WiimoteEmuExtension::CreateBalanceBoardLayout()
                                    Wiimote::GetBalanceBoardGroup(GetPort(), WiimoteEmu::BalanceBoardGroup::BottomRight)), 1, 1);
   layout->addWidget(CreateGroupBox(tr("Board Button"),
                                    Wiimote::GetBalanceBoardGroup(GetPort(), WiimoteEmu::BalanceBoardGroup::Button)), 2, 0, 1, 2);
+
+  m_balance_board_status = new QLabel(this);
+  m_balance_board_status->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  layout->addWidget(m_balance_board_status, 3, 0, 1, 2);
+  connect(this, &WiimoteEmuExtension::Update, this, [this] {
+    const auto get_weight = [this](WiimoteEmu::BalanceBoardGroup group) {
+      const auto* const control_group = Wiimote::GetBalanceBoardGroup(GetPort(), group);
+      const double value = control_group->controls.front()->GetState();
+      return std::clamp(value, 0.0, 1.0) * WiimoteEmu::BalanceBoard::MAX_SENSOR_WEIGHT_KG;
+    };
+
+    const double top_left = get_weight(WiimoteEmu::BalanceBoardGroup::TopLeft);
+    const double top_right = get_weight(WiimoteEmu::BalanceBoardGroup::TopRight);
+    const double bottom_left = get_weight(WiimoteEmu::BalanceBoardGroup::BottomLeft);
+    const double bottom_right = get_weight(WiimoteEmu::BalanceBoardGroup::BottomRight);
+    const double total = top_left + top_right + bottom_left + bottom_right;
+
+    const auto* const button_group =
+        Wiimote::GetBalanceBoardGroup(GetPort(), WiimoteEmu::BalanceBoardGroup::Button);
+    const bool button_pressed = button_group->controls.front()->GetState() > 0.5;
+
+    m_balance_board_status->setText(
+        tr("Live weight: TL %1 kg | TR %2 kg | BL %3 kg | BR %4 kg\\n"
+           "Total: %5 kg (%6 lb) | Board button: %7")
+            .arg(top_left, 0, 'f', 1)
+            .arg(top_right, 0, 'f', 1)
+            .arg(bottom_left, 0, 'f', 1)
+            .arg(bottom_right, 0, 'f', 1)
+            .arg(total, 0, 'f', 1)
+            .arg(total * 2.20462262185, 0, 'f', 1)
+            .arg(button_pressed ? tr("Pressed") : tr("Released")));
+  });
+
   m_balance_board_box->setLayout(layout);
 }
 
