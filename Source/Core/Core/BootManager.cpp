@@ -79,12 +79,22 @@ bool BootCore(Core::System& system, std::unique_ptr<BootParameters> boot,
   }
 
   if (Config::Get(Config::MAIN_FIN_GAME_ACCURACY) &&
-      StartUp.GetGameID().rfind("RZT", 0) == 0 &&
-      Config::GetActiveLayerForConfig(Config::MAIN_CPU_THREAD) == Config::LayerType::Base)
+      StartUp.GetGameID().rfind("RZT", 0) == 0)
   {
-    Config::SetCurrent(Config::MAIN_CPU_THREAD, false);
-    OSD::AddMessage("Fin accuracy profile: Wii Sports Resort single-core mode enabled.",
-                    OSD::Duration::NORMAL);
+    if (Config::GetActiveLayerForConfig(Config::MAIN_CPU_THREAD) == Config::LayerType::Base)
+    {
+      Config::SetCurrent(Config::MAIN_CPU_THREAD, false);
+      OSD::AddMessage("Fin accuracy profile: Wii Sports Resort single-core mode enabled.",
+                      OSD::Duration::NORMAL);
+    }
+
+    if (Config::GetActiveLayerForConfig(Config::MAIN_WIIMOTE_ENABLE_SPEAKER) ==
+        Config::LayerType::Base)
+    {
+      Config::SetCurrent(Config::MAIN_WIIMOTE_ENABLE_SPEAKER, false);
+      OSD::AddMessage("Fin accuracy profile: Wii Sports Resort speaker data compatibility enabled.",
+                      OSD::Duration::NORMAL);
+    }
   }
 
   if (NetPlay::IsNetPlayRunning())
