@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <utility>
 
+#include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -98,8 +99,11 @@ void Updater::OnUpdateAvailable(const NewVersionInformation& info)
 
     if (dialog->exec() == QDialog::Accepted)
     {
-      AutoUpdateChecker::TriggerUpdate(info, AutoUpdateChecker::RestartMode::RESTART_AFTER_UPDATE);
-      install_btn->setEnabled(false);
+      if (AutoUpdateChecker::TriggerUpdate(info, AutoUpdateChecker::RestartMode::RESTART_AFTER_UPDATE))
+      {
+        install_btn->setEnabled(false);
+        QCoreApplication::quit();
+      }
     }
 
     return 0;
