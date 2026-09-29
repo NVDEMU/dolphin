@@ -345,7 +345,13 @@ static bool DownloadPackage(const std::string& package_url, const std::string& p
     return false;
   }
 
-  output.WriteBytes(resp->data(), resp->size());
+  if (!output.WriteBytes(resp->data(), resp->size()))
+  {
+    LogToFile("Could not write update package %s.\n", package_path.c_str());
+    output.Close();
+    return false;
+  }
+
   output.Close();
   UI::SetCurrentMarquee(true);
   return true;
