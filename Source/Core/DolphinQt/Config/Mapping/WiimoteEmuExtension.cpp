@@ -74,6 +74,10 @@ void WiimoteEmuExtension::CreateBalanceBoardLayout()
     const double bottom_left = get_weight(WiimoteEmu::BalanceBoardGroup::BottomLeft);
     const double bottom_right = get_weight(WiimoteEmu::BalanceBoardGroup::BottomRight);
     const double total = top_left + top_right + bottom_left + bottom_right;
+    const double x_right = top_right + bottom_right;
+    const double y_bottom = bottom_left + bottom_right;
+    const double center_x = total > 0.0 ? x_right / total * 100.0 : 50.0;
+    const double center_y = total > 0.0 ? y_bottom / total * 100.0 : 50.0;
 
     const auto* const button_group =
         Wiimote::GetBalanceBoardGroup(GetPort(), WiimoteEmu::BalanceBoardGroup::Button);
@@ -81,14 +85,16 @@ void WiimoteEmuExtension::CreateBalanceBoardLayout()
 
     m_balance_board_status->setText(
         tr("Live weight: TL %1 kg | TR %2 kg | BL %3 kg | BR %4 kg\n"
-           "Total: %5 kg (%6 lb) | Board button: %7")
+           "Total: %5 kg (%6 lb) | Center: X %8%, Y %9% | Board button: %7")
             .arg(top_left, 0, 'f', 1)
             .arg(top_right, 0, 'f', 1)
             .arg(bottom_left, 0, 'f', 1)
             .arg(bottom_right, 0, 'f', 1)
             .arg(total, 0, 'f', 1)
             .arg(total * 2.20462262185, 0, 'f', 1)
-            .arg(button_pressed ? tr("Pressed") : tr("Released")));
+            .arg(button_pressed ? tr("Pressed") : tr("Released"))
+            .arg(center_x, 0, 'f', 0)
+            .arg(center_y, 0, 'f', 0));
   });
 
   m_balance_board_box->setLayout(layout);
