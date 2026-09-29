@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Fin is a custom GameCube and Wii emulator focused on accuracy, performance, and practical new features.">
+<title>Fin — GameCube & Wii Emulator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="./">FIN</a>
+    <nav>
+      <a href="#downloads">Downloads</a>
+      <a href="#features">Features</a>
+      <a href="https://github.com/NVDEMU/dolphin">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="container">
+    <p class="eyebrow">NVDEMU</p>
+    <h1>Fin</h1>
+    <p class="lead">A custom GameCube and Wii emulator focused on accuracy, performance, and practical new features.</p>
+    <div class="actions">
+      <a class="button primary" href="#downloads">Download Nightly</a>
+      <a class="button secondary" href="https://github.com/NVDEMU/dolphin">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<section id="downloads" class="section">
+  <div class="container">
+    <div class="section-heading">
+      <p class="eyebrow">Latest build</p>
+      <h2>Download Fin</h2>
+      <p>The nightly release is built for Windows x64, Windows ARM64, and universal macOS.</p>
+    </div>
+    <div class="cards">
+      <a class="card" href="https://github.com/NVDEMU/dolphin/releases/download/nightly/Fin-nightly-macOS-universal.zip">
+        <span>macOS</span>
+        <strong>Universal</strong>
+        <small>Apple Silicon + Intel</small>
+      </a>
+      <a class="card" href="https://github.com/NVDEMU/dolphin/releases/download/nightly/Fin-nightly-Windows-x64.zip">
+        <span>Windows</span>
+        <strong>x64</strong>
+        <small>Standard 64-bit PC</small>
+      </a>
+      <a class="card" href="https://github.com/NVDEMU/dolphin/releases/download/nightly/Fin-nightly-Windows-arm64.zip">
+        <span>Windows</span>
+        <strong>ARM64</strong>
+        <small>Windows on ARM</small>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section alt">
+  <div class="container">
+    <div class="section-heading">
+      <p class="eyebrow">What’s in Fin</p>
+      <h2>Accuracy plus useful extras</h2>
+    </div>
+    <div class="feature-grid">
+      <article>
+        <h3>Virtual Wii Balance Board</h3>
+        <p>Four pressure sensors, calibration data, board button support, battery state, dedicated mappings, and a live weight monitor.</p>
+      </article>
+      <article>
+        <h3>Wii Sports Resort profile</h3>
+        <p>Game-specific accuracy handling for CPU threading and Wii Remote speaker behavior, while respecting per-game overrides.</p>
+      </article>
+      <article>
+        <h3>Direct in-app updates</h3>
+        <p>Fin checks the NVDEMU release, downloads the matching platform package, installs it, and restarts the emulator.</p>
+      </article>
+      <article>
+        <h3>Performance-focused changes</h3>
+        <p>Fin keeps low-risk optimizations separate from user-visible settings, including avoiding unused Balance Board input work.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container callout">
+    <div>
+      <p class="eyebrow">Open source</p>
+      <h2>Built in public</h2>
+      <p>Follow development, report compatibility problems, and browse the source code on GitHub.</p>
+    </div>
+    <a class="button primary" href="https://github.com/NVDEMU/dolphin">Open repository</a>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="container footer-inner">
+    <span>Fin by NVDEMU</span>
+    <span>GameCube + Wii</span>
+  </div>
+</footer>
+</body>
+</html>
