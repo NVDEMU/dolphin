@@ -4,6 +4,7 @@
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <memory>
 #include <optional>
@@ -477,11 +478,13 @@ GetPassthroughCameraPoints(ControllerEmu::IRPassthrough* ir_passthrough)
   for (size_t i = 0; i < camera_points.size(); ++i)
   {
     const ControlState size = ir_passthrough->GetObjectSize(i);
-    if (size <= 0.0f)
+    if (!std::isfinite(size) || size <= 0.0f)
       continue;
 
     const ControlState x = ir_passthrough->GetObjectPositionX(i);
     const ControlState y = ir_passthrough->GetObjectPositionY(i);
+    if (!std::isfinite(x) || !std::isfinite(y))
+      continue;
 
     camera_points[i].position.x =
         std::clamp(std::lround(x * ControlState(CameraLogic::CAMERA_RES_X - 1)), long(0),
