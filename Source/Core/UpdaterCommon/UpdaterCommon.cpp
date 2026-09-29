@@ -428,6 +428,8 @@ static bool PerformPackageUpdate(const std::string& package_url, const std::stri
 #ifdef __APPLE__
   const std::filesystem::path source_app = std::filesystem::path(extract_path) / "Fin.app";
   const std::filesystem::path install_app = std::filesystem::path(install_base_path) / "Fin.app";
+  const std::filesystem::path staged_app = std::filesystem::path(install_base_path) / ".Fin.app.new";
+  const std::filesystem::path backup_app = std::filesystem::path(install_base_path) / ".Fin.app.old";
 
   if (!std::filesystem::is_directory(source_app))
   {
@@ -435,24 +437,54 @@ static bool PerformPackageUpdate(const std::string& package_url, const std::stri
     return false;
   }
 
-  UI::SetDescription("Installing Fin...");
-  if (std::filesystem::exists(install_app))
+  const auto source_executable = source_app / "Contents/MacOS/Dolphin";
+  if (!std::filesystem::is_regular_file(source_executable))
   {
-    const auto backup_app = install_app.string() + ".old";
-    File::DeleteDirRecursively(backup_app);
-    if (!File::Rename(install_app.string(), backup_app))
-      return false;
-  }
-
-  const std::string command =
-      fmt::format("/usr/bin/ditto {} {}", ShellQuote(source_app.string()), ShellQuote(install_app.string()));
-  if (std::system(command.c_str()) != 0)
-  {
-    LogToFile("Could not install the new Fin.app.\n");
+    LogToFile("Update package contains an incomplete Fin.app.\n");
     return false;
   }
 
-  File::DeleteDirRecursively(install_app.string() + ".old");
+  UI::SetDescription("Installing Fin...");
+
+  // Build the replacement app completely before touching the installed app. This keeps a failed
+  // download/extraction/copy from leaving the user's Fin.app missing.
+  File::DeleteDirRecursively(staged_app.string());
+  const std::string stage_command =
+      fmt::format("/usr/bin/ditto {} {}", ShellQuote(source_app.string()), ShellQuote(staged_app.string()));
+  LogToFile("Staging new Fin.app with: %s\n", stage_command.c_str());
+  if (std::system(stage_command.c_str()) != 0 ||
+      !std::filesystem::is_regular_file(staged_app / "Contents/MacOS/Dolphin"))
+  {
+    LogToFile("Could not stage the new Fin.app.\n");
+    File::DeleteDirRecursively(staged_app.string());
+    return false;
+  }
+
+  File::DeleteDirRecursively(backup_app.string());
+  bool had_existing_app = false;
+  if (std::filesystem::exists(install_app))
+  {
+    if (!File::Rename(install_app.string(), backup_app.string()))
+    {
+      LogToFile("Could not move the existing Fin.app out of the way.\n");
+      File::DeleteDirRecursively(staged_app.string());
+      return false;
+    }
+    had_existing_app = true;
+  }
+
+  // Rename within the same installation directory so the final swap is atomic.
+  if (!File::Rename(staged_app.string(), install_app.string()))
+  {
+    LogToFile("Could not activate the new Fin.app. Restoring the previous app.\n");
+    File::DeleteDirRecursively(staged_app.string());
+    if (had_existing_app && !File::Rename(backup_app.string(), install_app.string()))
+      LogToFile("WARNING: Could not restore the previous Fin.app.\n");
+    return false;
+  }
+
+  if (had_existing_app)
+    File::DeleteDirRecursively(backup_app.string());
 #else
   UI::SetDescription("Installing Fin...");
   const std::filesystem::path install_path = std::filesystem::path(install_base_path);
