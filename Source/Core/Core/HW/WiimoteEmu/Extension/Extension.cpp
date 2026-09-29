@@ -109,6 +109,15 @@ BalanceBoard::BalanceBoard() : Extension("BalanceBoard", _trans("Wii Balance Boa
     groups.emplace_back(m_sensor_groups[i] = new ControllerEmu::ControlGroup(sensor_names[i]));
     m_sensor_groups[i]->AddInput(Translatability::Translate, _trans("Weight"));
   }
+
+  auto* const options = new ControllerEmu::ControlGroup(_trans("Options"));
+  options->AddSetting(
+      &m_sensor_smoothing,
+      ControllerEmu::NumericSettingDetails(
+          "Smoothing", "%", _trans("Smooths rapid virtual sensor changes. Set to 0% to preserve raw input."),
+          _trans("Sensor Smoothing")),
+      0.0, 0.0, 95.0);
+  groups.emplace_back(options);
 }
 
 bool BalanceBoard::ReadDeviceDetectPin() const
@@ -130,9 +139,25 @@ void BalanceBoard::BuildDesiredExtensionState(DesiredExtensionState* target_stat
         value = *override_value;
       }
     }
+
+    double normalized = value;
+    if (!std::isfinite(normalized))
+      normalized = 0.0;
+
+    normalized = std::clamp(normalized, 0.0, 1.0);
+    const double smoothing = std::clamp(m_sensor_smoothing.GetValue(), 0.0, 95.0) / 100.0;
+
+    if (smoothing == 0.0 || !m_have_smoothed_weight)
+      m_smoothed_weight[i] = normalized;
+    else
+      m_smoothed_weight[i] =
+          smoothing * m_smoothed_weight[i] + (1.0 - smoothing) * normalized;
+
     state.sensor_weight[i] =
-        static_cast<u8>(std::lround(std::clamp(value, ControlState(0.0), ControlState(1.0)) * 255.0));
+        static_cast<u8>(std::lround(m_smoothed_weight[i] * 255.0));
   }
+
+  m_have_smoothed_weight = true;
 }
 
 u16 BalanceBoard::WeightToRaw(size_t sensor, double weight_kg)
@@ -188,6 +213,8 @@ bool BalanceBoard::GetButtonState()
 
 void BalanceBoard::Reset()
 {
+  m_smoothed_weight.fill(0.0);
+  m_have_smoothed_weight = false;
   m_registers.fill(0);
   std::copy(BALANCE_BOARD_CALIBRATION_BLOCK.begin(), BALANCE_BOARD_CALIBRATION_BLOCK.end(),
             m_registers.begin() + 0x20);
@@ -198,6 +225,8 @@ void BalanceBoard::Reset()
 void BalanceBoard::DoState(PointerWrap& p)
 {
   p.Do(m_registers);
+  p.Do(m_smoothed_weight);
+  p.Do(m_have_smoothed_weight);
 }
 
 void BalanceBoard::LoadDefaults()
