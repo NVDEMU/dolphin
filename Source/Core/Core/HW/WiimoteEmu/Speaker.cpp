@@ -56,10 +56,6 @@ static s16 adpcm_yamaha_expand_nibble(ADPCMState& s, u8 nibble)
 
 void SpeakerLogic::SpeakerData(const u8* data, int length, float speaker_pan)
 {
-  // TODO: should we still process samples for the decoder state?
-  if (!m_speaker_enabled)
-    return;
-
   if (reg_data.sample_rate == 0 || length == 0)
     return;
 
@@ -104,6 +100,11 @@ void SpeakerLogic::SpeakerData(const u8* data, int length, float speaker_pan)
     ERROR_LOG_FMT(IOS_WIIMOTE, "Unknown speaker format {:x}", reg_data.format);
     return;
   }
+
+  // The speaker decoder has state (especially ADPCM). Keep consuming packets while muted so
+  // re-enabling speaker output does not resume from stale decoder state.
+  if (!m_speaker_enabled)
+    return;
 
   if (reg_data.volume > volume_divisor)
   {
