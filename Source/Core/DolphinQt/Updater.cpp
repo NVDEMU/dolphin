@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <QDesktopServices>
+#include <QCoreApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QLabel>
@@ -102,6 +103,7 @@ void Updater::OnUpdateAvailable(const NewVersionInformation& info)
       {
         install_btn->setEnabled(false);
         m_parent->close();
+        QCoreApplication::quit();
       }
     }
 
