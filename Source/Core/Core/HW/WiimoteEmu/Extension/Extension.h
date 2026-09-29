@@ -103,7 +103,10 @@ private:
 
   ControllerEmu::Buttons* m_button;
   std::array<ControllerEmu::ControlGroup*, 4> m_sensor_groups;
+  ControllerEmu::SettingValue<double> m_sensor_smoothing;
+  std::array<double, 4> m_smoothed_weight{};
   std::array<u8, 0x100> m_registers{};
+  bool m_have_smoothed_weight = false;
   u8 m_battery_level = 0x95;
 };
 
