@@ -81,7 +81,7 @@ public:
 
   struct DesiredState
   {
-    std::array<u8, 4> sensor_weight{};
+    std::array<u16, 4> sensor_weight{};
   };
 
   BalanceBoard();
