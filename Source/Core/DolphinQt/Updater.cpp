@@ -98,8 +98,11 @@ void Updater::OnUpdateAvailable(const NewVersionInformation& info)
 
     if (dialog->exec() == QDialog::Accepted)
     {
-      AutoUpdateChecker::TriggerUpdate(info, AutoUpdateChecker::RestartMode::RESTART_AFTER_UPDATE);
-      install_btn->setEnabled(false);
+      if (AutoUpdateChecker::TriggerUpdate(info, AutoUpdateChecker::RestartMode::RESTART_AFTER_UPDATE))
+      {
+        install_btn->setEnabled(false);
+        m_parent->close();
+      }
     }
 
     return 0;
