@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Fin is a custom GameCube and Wii emulator focused on accuracy, performance, and practical new features.">
-<title>Fin — GameCube & Wii Emulator</title>
+<title>Fin — GameCube &amp; Wii Emulator</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,6 +13,7 @@
     <a class="brand" href="./">FIN</a>
     <nav>
       <a href="#downloads">Downloads</a>
+      <a href="#accuracy">Accuracy</a>
       <a href="#features">Features</a>
       <a href="https://github.com/NVDEMU/dolphin">Source</a>
     </nav>
@@ -21,13 +22,17 @@
 
 <main>
 <section class="hero">
+  <div class="ocean-glow"></div>
   <div class="container">
-    <p class="eyebrow">NVDEMU</p>
+    <p class="eyebrow">NVDEMU • OCEAN BUILD</p>
     <h1>Fin</h1>
     <p class="lead">A custom GameCube and Wii emulator focused on accuracy, performance, and practical new features.</p>
     <div class="actions">
       <a class="button primary" href="#downloads">Download Nightly</a>
-      <a class="button secondary" href="https://github.com/NVDEMU/dolphin">View on GitHub</a>
+      <a class="button secondary" href="#accuracy">Explore accuracy work</a>
+    </div>
+    <div class="tide-line">
+      <span>GAMECUBE</span><span>WII</span><span>MAC + WINDOWS</span>
     </div>
   </div>
 </section>
@@ -37,51 +42,59 @@
     <div class="section-heading">
       <p class="eyebrow">Latest build</p>
       <h2>Download Fin</h2>
-      <p>The nightly release is built for Windows x64, Windows ARM64, and universal macOS.</p>
+      <p>Nightly builds are published for universal macOS, Windows x64, and Windows ARM64.</p>
     </div>
     <div class="cards">
       <a class="card" href="https://github.com/NVDEMU/dolphin/releases/download/nightly/Fin-nightly-macOS-universal.zip">
-        <span>macOS</span>
-        <strong>Universal</strong>
-        <small>Apple Silicon + Intel</small>
+        <span>macOS</span><strong>Universal</strong><small>Apple Silicon + Intel</small>
       </a>
       <a class="card" href="https://github.com/NVDEMU/dolphin/releases/download/nightly/Fin-nightly-Windows-x64.zip">
-        <span>Windows</span>
-        <strong>x64</strong>
-        <small>Standard 64-bit PC</small>
+        <span>Windows</span><strong>x64</strong><small>Standard 64-bit PC</small>
       </a>
       <a class="card" href="https://github.com/NVDEMU/dolphin/releases/download/nightly/Fin-nightly-Windows-arm64.zip">
-        <span>Windows</span>
-        <strong>ARM64</strong>
-        <small>Windows on ARM</small>
+        <span>Windows</span><strong>ARM64</strong><small>Windows on ARM</small>
       </a>
     </div>
   </div>
 </section>
 
-<section id="features" class="section alt">
+<section id="accuracy" class="section alt">
   <div class="container">
     <div class="section-heading">
-      <p class="eyebrow">What’s in Fin</p>
-      <h2>Accuracy plus useful extras</h2>
+      <p class="eyebrow">Feature spotlight</p>
+      <h2>Game Accuracy Enhancements</h2>
+      <p>Game-specific profiles can apply targeted emulator behavior where a title needs it instead of changing global settings for every game.</p>
+    </div>
+    <div class="filter-bar" role="group" aria-label="Filter accuracy profiles">
+      <button class="filter active" data-filter="all">All</button>
+      <button class="filter" data-filter="wii">Wii</button>
+      <button class="filter" data-filter="gamecube">GameCube</button>
+      <span id="profile-count" class="count">8 profiles</span>
+    </div>
+    <div class="feature-grid profile-grid">
+      <article class="profile" data-platform="gamecube"><span class="tag">GameCube</span><h3>Super Mario Sunshine</h3><p>EFB access and texture-cache handling tuned for its framebuffer effects.</p></article>
+      <article class="profile" data-platform="gamecube"><span class="tag">GameCube</span><h3>Metroid Prime</h3><p>Game-specific graphics configuration for the minimap and texture behavior.</p></article>
+      <article class="profile" data-platform="gamecube"><span class="tag">GameCube</span><h3>Star Wars: Rogue Leader</h3><p>Targeted XFB handling and CPU behavior for the game's rendering path.</p></article>
+      <article class="profile" data-platform="wii"><span class="tag">Wii</span><h3>Super Mario Galaxy 2</h3><p>EFB access, deferred invalidation, and mipmap detection tuned per game.</p></article>
+      <article class="profile" data-platform="wii"><span class="tag">Wii</span><h3>Sonic Colours</h3><p>Targeted idle-loop handling so the emulator can recognize the game's idle path.</p></article>
+      <article class="profile" data-platform="wii"><span class="tag">Wii</span><h3>Sonic and the Secret Rings</h3><p>Game-specific idle-loop enhancement alongside its existing motion-input profile.</p></article>
+      <article class="profile" data-platform="wii"><span class="tag">Wii</span><h3>Sonic Unleashed</h3><p>Targeted idle-loop enhancement for the Wii release's main runtime loop.</p></article>
+      <article class="profile" data-platform="wii"><span class="tag">Wii</span><h3>Sonic and the Black Knight</h3><p>Targeted idle-loop enhancement for the Wii release's runtime loop.</p></article>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section">
+  <div class="container">
+    <div class="section-heading">
+      <p class="eyebrow">New in Fin</p>
+      <h2>Tools for the tricky hardware</h2>
     </div>
     <div class="feature-grid">
-      <article>
-        <h3>Virtual Wii Balance Board</h3>
-        <p>Four pressure sensors, calibration data, board button support, battery state, dedicated mappings, and a live weight monitor.</p>
-      </article>
-      <article>
-        <h3>Wii Sports Resort profile</h3>
-        <p>Game-specific accuracy handling for CPU threading and Wii Remote speaker behavior, while respecting per-game overrides.</p>
-      </article>
-      <article>
-        <h3>Direct in-app updates</h3>
-        <p>Fin checks the NVDEMU release, downloads the matching platform package, installs it, and restarts the emulator.</p>
-      </article>
-      <article>
-        <h3>Performance-focused changes</h3>
-        <p>Fin keeps low-risk optimizations separate from user-visible settings, including avoiding unused Balance Board input work.</p>
-      </article>
+      <article><h3>Balance Board diagnostics</h3><p>Four-sensor live weight readout, center-of-pressure tracking, smoothing, battery state, and board-button monitoring.</p></article>
+      <article><h3>Accuracy profile filtering</h3><p>Quickly browse supported game-specific enhancements by platform without changing emulator-wide settings.</p></article>
+      <article><h3>Direct in-app updates</h3><p>Fin checks the NVDEMU release, downloads the matching package, installs it, and restarts the emulator.</p></article>
+      <article><h3>Mac-first packaging</h3><p>Universal macOS builds ship as a normal Fin.app inside the downloadable package.</p></article>
     </div>
   </div>
 </section>
@@ -91,7 +104,7 @@
     <div>
       <p class="eyebrow">Open source</p>
       <h2>Built in public</h2>
-      <p>Follow development, report compatibility problems, and browse the source code on GitHub.</p>
+      <p>Browse the source, follow compatibility work, and see each accuracy profile in the repository.</p>
     </div>
     <a class="button primary" href="https://github.com/NVDEMU/dolphin">Open repository</a>
   </div>
@@ -99,10 +112,8 @@
 </main>
 
 <footer>
-  <div class="container footer-inner">
-    <span>Fin by NVDEMU</span>
-    <span>GameCube + Wii</span>
-  </div>
+  <div class="container footer-inner"><span>Fin by NVDEMU</span><span>GameCube + Wii</span></div>
 </footer>
+<script src="script.js"></script>
 </body>
 </html>
