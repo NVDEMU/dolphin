@@ -153,8 +153,9 @@ void BalanceBoard::BuildDesiredExtensionState(DesiredExtensionState* target_stat
       m_smoothed_weight[i] =
           smoothing * m_smoothed_weight[i] + (1.0 - smoothing) * normalized;
 
-    state.sensor_weight[i] =
-        static_cast<u8>(std::lround(m_smoothed_weight[i] * 255.0));
+    const double weight_kg =
+        std::clamp(m_smoothed_weight[i], 0.0, 1.0) * MAX_SENSOR_WEIGHT_KG;
+    state.sensor_weight[i] = WeightToRaw(i, weight_kg);
   }
 
   m_have_smoothed_weight = true;
@@ -186,7 +187,7 @@ void BalanceBoard::Update(const DesiredExtensionState& target_state)
 
   for (size_t i = 0; i < desired_state.sensor_weight.size(); ++i)
   {
-    const u16 raw = WeightToRaw(i, (desired_state.sensor_weight[i] / 255.0) * MAX_SENSOR_WEIGHT_KG);
+    const u16 raw = desired_state.sensor_weight[i];
     m_registers[i * 2] = static_cast<u8>(raw >> 8);
     m_registers[i * 2 + 1] = static_cast<u8>(raw & 0xFF);
   }
