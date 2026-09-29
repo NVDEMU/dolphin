@@ -342,14 +342,14 @@ void AutoUpdateChecker::CheckForUpdate(std::string_view update_track,
   OnUpdateAvailable(nvi);
 }
 
-void AutoUpdateChecker::TriggerUpdate(const AutoUpdateChecker::NewVersionInformation& info,
+bool AutoUpdateChecker::TriggerUpdate(const AutoUpdateChecker::NewVersionInformation& info,
                                       const AutoUpdateChecker::RestartMode restart_mode)
 {
   // Check to make sure we don't already have an update triggered
   if (s_update_triggered)
   {
     WARN_LOG_FMT(COMMON, "Auto-update: received a redundant trigger request, ignoring");
-    return;
+    return false;
   }
 
 #ifdef OS_SUPPORTS_UPDATER
@@ -378,12 +378,12 @@ void AutoUpdateChecker::TriggerUpdate(const AutoUpdateChecker::NewVersionInforma
   if (!File::Copy(UpdaterPath(), reloc_updater_path))
   {
     CriticalAlertFmtT("Unable to create updater copy.");
-    return;
+    return false;
   }
   if (chmod((reloc_updater_path + UPDATER_CONTENT_PATH).c_str(), 0700) != 0)
   {
     CriticalAlertFmtT("Unable to set permissions on updater copy.");
-    return;
+    return false;
   }
 #endif
 
@@ -401,6 +401,7 @@ void AutoUpdateChecker::TriggerUpdate(const AutoUpdateChecker::NewVersionInforma
     CloseHandle(pinfo.hThread);
     CloseHandle(pinfo.hProcess);
     s_update_triggered = true;
+    return true;
   }
   else
   {
@@ -416,8 +417,11 @@ void AutoUpdateChecker::TriggerUpdate(const AutoUpdateChecker::NewVersionInforma
   else
   {
     s_update_triggered = true;
+    return true;
   }
 #endif
 
 #endif
+
+  return false;
 }
