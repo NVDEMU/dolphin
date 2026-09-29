@@ -81,7 +81,8 @@ public:
 
   struct DesiredState
   {
-    std::array<u16, 4> sensor_weight{};
+    // Four 12-bit normalized sensor values packed into six bytes for netplay/state serialization.
+    std::array<u8, 6> sensor_weight{};
   };
 
   BalanceBoard();
