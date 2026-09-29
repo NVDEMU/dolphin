@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include <fmt/format.h>
 #include <picojson.h>
@@ -26,7 +28,10 @@
 #endif
 
 #ifdef __APPLE__
+#include <spawn.h>
 #include <sys/stat.h>
+
+extern char** environ;
 #endif
 
 #if defined(_WIN32) || defined(__APPLE__)
@@ -55,7 +60,10 @@ std::string UpdaterPath(bool relocated = false)
 {
 #ifdef __APPLE__
   if (relocated)
-    return File::GetExeDirectory() + DIR_SEP + ".Dolphin Updater.2.app";
+  {
+    const auto parent_directory = std::filesystem::path(File::GetBundleDirectory()).parent_path();
+    return (parent_directory / ".Dolphin Updater.2.app").string();
+  }
   else
     return File::GetBundleDirectory() + DIR_SEP + "Contents/Helpers/Dolphin Updater.app";
 #else
@@ -226,6 +234,10 @@ void AutoUpdateChecker::CheckForUpdate(std::string_view update_track,
     return;
 
   const bool is_manual_check = check_type == CheckType::Manual;
+
+#ifdef OS_SUPPORTS_UPDATER
+  CleanupFromPreviousUpdate();
+#endif
 
   Common::HttpRequest req{std::chrono::seconds{10}};
   const Common::HttpRequest::Headers headers = {
@@ -408,17 +420,37 @@ bool AutoUpdateChecker::TriggerUpdate(const AutoUpdateChecker::NewVersionInforma
     const std::string error = Common::GetLastErrorString();
     CriticalAlertFmtT("Could not start updater process: {0}", error);
   }
-#else
-  if (popen(command_line.c_str(), "r") == nullptr)
+#elif defined(__APPLE__)
+  // Do not use popen()/a shell here. A shell can start successfully even when the updater
+  // executable itself cannot be launched, which would make Fin close as though the update had
+  // started successfully. posix_spawn reports the actual exec failure to us and also avoids shell
+  // quoting problems with paths and URLs containing spaces or special characters.
+  std::vector<std::string> updater_args;
+  updater_args.reserve(updater_flags.size() + 1);
+  updater_args.emplace_back(UpdaterPath(true) + UPDATER_CONTENT_PATH);
+  for (const auto& [name, value] : updater_flags)
+    updater_args.emplace_back("--" + name + "=" + value);
+
+  std::vector<char*> argv;
+  argv.reserve(updater_args.size() + 1);
+  for (auto& arg : updater_args)
+    argv.push_back(arg.data());
+  argv.push_back(nullptr);
+
+  pid_t updater_pid{};
+  const int spawn_result =
+      posix_spawn(&updater_pid, updater_args[0].c_str(), nullptr, nullptr, argv.data(), environ);
+  if (spawn_result != 0)
   {
-    const std::string error = Common::LastStrerrorString();
-    CriticalAlertFmtT("Could not start updater process: {0}", error);
+    CriticalAlertFmtT("Could not start updater process: {0}", std::strerror(spawn_result));
   }
   else
   {
     s_update_triggered = true;
     return true;
   }
+#else
+  return false;
 #endif
 
 #endif
