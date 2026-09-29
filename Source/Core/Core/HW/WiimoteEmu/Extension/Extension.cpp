@@ -93,6 +93,53 @@ constexpr std::array<u8, 32> BALANCE_BOARD_CALIBRATION_BLOCK{{
     0x15, 0x2E, 0x1F, 0x71, 0x14, 0x07, 0x54, 0x51,
     0xA9, 0x06, 0xB4, 0xF0,
 }};
+
+u16 DecodePackedSensorWeight(const std::array<u8, 6>& packed, size_t sensor)
+{
+  const size_t pair = sensor / 2;
+  const size_t offset = pair * 3;
+  if ((sensor & 1) == 0)
+    return static_cast<u16>(packed[offset] | ((packed[offset + 1] & 0x0F) << 8));
+
+  return static_cast<u16>((packed[offset + 1] >> 4) | (packed[offset + 2] << 4));
+}
+
+void EncodePackedSensorWeight(std::array<u8, 6>* packed, size_t sensor, u16 value)
+{
+  const size_t pair = sensor / 2;
+  const size_t offset = pair * 3;
+  value = std::min<u16>(value, 0x0FFF);
+
+  if ((sensor & 1) == 0)
+  {
+    (*packed)[offset] = static_cast<u8>(value & 0xFF);
+    (*packed)[offset + 1] = static_cast<u8>((*packed)[offset + 1] & 0xF0);
+    (*packed)[offset + 1] |= static_cast<u8>(value >> 8);
+  }
+  else
+  {
+    (*packed)[offset + 1] = static_cast<u8>((*packed)[offset + 1] & 0x0F);
+    (*packed)[offset + 1] |= static_cast<u8>((value & 0x0F) << 4);
+    (*packed)[offset + 2] = static_cast<u8>(value >> 4);
+  }
+}
+
+u16 WeightToPackedSensor(u16 raw, size_t sensor)
+{
+  const auto& calibration = BALANCE_BOARD_CALIBRATION.at(sensor);
+  const double raw_min = calibration[0];
+  const double raw_max = calibration[2];
+  const double normalized = std::clamp((static_cast<double>(raw) - raw_min) / (raw_max - raw_min), 0.0, 1.0);
+  return static_cast<u16>(std::lround(normalized * 4095.0));
+}
+
+u16 PackedSensorToRaw(u16 packed_value, size_t sensor)
+{
+  const auto& calibration = BALANCE_BOARD_CALIBRATION.at(sensor);
+  const double normalized = static_cast<double>(packed_value) / 4095.0;
+  const double raw = calibration[0] + (calibration[2] - calibration[0]) * normalized;
+  return static_cast<u16>(std::clamp<long>(std::lround(raw), 0L, 0xFFFFL));
+}
 }  // namespace
 
 BalanceBoard::BalanceBoard() : Extension("BalanceBoard", _trans("Wii Balance Board"))
@@ -155,7 +202,8 @@ void BalanceBoard::BuildDesiredExtensionState(DesiredExtensionState* target_stat
 
     const double weight_kg =
         std::clamp(m_smoothed_weight[i], 0.0, 1.0) * MAX_SENSOR_WEIGHT_KG;
-    state.sensor_weight[i] = WeightToRaw(i, weight_kg);
+    const u16 raw = WeightToRaw(i, weight_kg);
+    EncodePackedSensorWeight(&state.sensor_weight, i, WeightToPackedSensor(raw, i));
   }
 
   m_have_smoothed_weight = true;
@@ -185,9 +233,10 @@ void BalanceBoard::Update(const DesiredExtensionState& target_state)
   if (std::holds_alternative<DesiredState>(target_state.data))
     desired_state = std::get<DesiredState>(target_state.data);
 
-  for (size_t i = 0; i < desired_state.sensor_weight.size(); ++i)
+  for (size_t i = 0; i < 4; ++i)
   {
-    const u16 raw = desired_state.sensor_weight[i];
+    const u16 packed = DecodePackedSensorWeight(desired_state.sensor_weight, i);
+    const u16 raw = PackedSensorToRaw(packed, i);
     m_registers[i * 2] = static_cast<u8>(raw >> 8);
     m_registers[i * 2 + 1] = static_cast<u8>(raw & 0xFF);
   }
