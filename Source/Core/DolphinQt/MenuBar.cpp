@@ -267,6 +267,11 @@ void MenuBar::AddFileMenu()
         file_menu->addAction(tr("Open C&ache Folder"), this, &MenuBar::OpenCacheFolder);
   }
 
+  file_menu->addAction(tr("Open &Screenshots Folder"), this,
+                       [this] { emit OpenScreenshotsFolder(); });
+  file_menu->addAction(tr("Open &State Saves Folder"), this,
+                       [this] { emit OpenStateSavesFolder(); });
+
   file_menu->addSeparator();
 
   m_exit_action = file_menu->addAction(tr("E&xit"), this, &MenuBar::Exit);
