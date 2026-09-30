@@ -124,21 +124,16 @@ void EncodePackedSensorWeight(std::array<u8, 6>* packed, size_t sensor, u16 valu
   }
 }
 
-u16 WeightToPackedSensor(u16 raw, size_t sensor)
+u16 WeightToPackedSensor(double weight_kg)
 {
-  const auto& calibration = BALANCE_BOARD_CALIBRATION.at(sensor);
-  const double raw_min = calibration[0];
-  const double raw_max = calibration[2];
-  const double normalized = std::clamp((static_cast<double>(raw) - raw_min) / (raw_max - raw_min), 0.0, 1.0);
+  const double normalized = std::clamp(weight_kg / BalanceBoard::MAX_SENSOR_WEIGHT_KG, 0.0, 1.0);
   return static_cast<u16>(std::lround(normalized * 4095.0));
 }
 
-u16 PackedSensorToRaw(u16 packed_value, size_t sensor)
+double PackedSensorToWeight(u16 packed_value)
 {
-  const auto& calibration = BALANCE_BOARD_CALIBRATION.at(sensor);
-  const double normalized = static_cast<double>(packed_value) / 4095.0;
-  const double raw = calibration[0] + (calibration[2] - calibration[0]) * normalized;
-  return static_cast<u16>(std::clamp<long>(std::lround(raw), 0L, 0xFFFFL));
+  return std::clamp(static_cast<double>(packed_value) / 4095.0, 0.0, 1.0) *
+         BalanceBoard::MAX_SENSOR_WEIGHT_KG;
 }
 }  // namespace
 
@@ -202,8 +197,7 @@ void BalanceBoard::BuildDesiredExtensionState(DesiredExtensionState* target_stat
 
     const double weight_kg =
         std::clamp(m_smoothed_weight[i], 0.0, 1.0) * MAX_SENSOR_WEIGHT_KG;
-    const u16 raw = WeightToRaw(i, weight_kg);
-    EncodePackedSensorWeight(&state.sensor_weight, i, WeightToPackedSensor(raw, i));
+    EncodePackedSensorWeight(&state.sensor_weight, i, WeightToPackedSensor(weight_kg));
   }
 
   m_have_smoothed_weight = true;
@@ -236,7 +230,8 @@ void BalanceBoard::Update(const DesiredExtensionState& target_state)
   for (size_t i = 0; i < 4; ++i)
   {
     const u16 packed = DecodePackedSensorWeight(desired_state.sensor_weight, i);
-    const u16 raw = PackedSensorToRaw(packed, i);
+    const double weight_kg = PackedSensorToWeight(packed);
+    const u16 raw = WeightToRaw(i, weight_kg);
     m_registers[i * 2] = static_cast<u8>(raw >> 8);
     m_registers[i * 2 + 1] = static_cast<u8>(raw & 0xFF);
   }
@@ -277,6 +272,7 @@ void BalanceBoard::DoState(PointerWrap& p)
   p.Do(m_registers);
   p.Do(m_smoothed_weight);
   p.Do(m_have_smoothed_weight);
+  p.Do(m_battery_level);
 }
 
 void BalanceBoard::LoadDefaults()
