@@ -64,6 +64,8 @@ signals:
   void OpenUserFolder();
   void OpenConfigFolder();
   void OpenCacheFolder();
+  void OpenScreenshotsFolder();
+  void OpenStateSavesFolder();
 
   // Emulation
   void Play();
