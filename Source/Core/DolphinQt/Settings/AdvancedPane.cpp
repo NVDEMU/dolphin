@@ -245,6 +245,27 @@ void AdvancedPane::CreateLayout()
   vi_text();
   connect(m_vi_rate_override_slider, &QSlider::valueChanged, this, vi_text);
 
+  auto* const vbi_preset_layout = new QHBoxLayout();
+  vbi_preset_layout->setContentsMargins(0, 0, 0, 0);
+  vi_rate_override_layout->addLayout(vbi_preset_layout);
+
+  const std::array<std::pair<const char*, int>, 5> vbi_presets{{
+      {"50%", 49},
+      {"75%", 74},
+      {"100%", 99},
+      {"125%", 124},
+      {"150%", 149},
+  }};
+
+  for (const auto& [label, value] : vbi_presets)
+  {
+    auto* const button = new QPushButton(tr(label));
+    vbi_preset_layout->addWidget(button);
+    connect(button, &QPushButton::clicked, this, [this, value] {
+      m_vi_rate_override_slider->setValue(value);
+    });
+  }
+
   m_vi_rate_override_checkbox->SetDescription(
       tr("Adjusts the VBI frequency. Also adjusts the emulated CPU's "
          "clock rate, to keep it relatively the same.<br><br>"
