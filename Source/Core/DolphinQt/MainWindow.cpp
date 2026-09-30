@@ -527,6 +527,8 @@ void MainWindow::ConnectMenuBar()
   connect(m_menu_bar, &MenuBar::OpenUserFolder, this, &MainWindow::OpenUserFolder);
   connect(m_menu_bar, &MenuBar::OpenConfigFolder, this, &MainWindow::OpenConfigFolder);
   connect(m_menu_bar, &MenuBar::OpenCacheFolder, this, &MainWindow::OpenCacheFolder);
+  connect(m_menu_bar, &MenuBar::OpenScreenshotsFolder, this, &MainWindow::OpenScreenshotsFolder);
+  connect(m_menu_bar, &MenuBar::OpenStateSavesFolder, this, &MainWindow::OpenStateSavesFolder);
 
   // Emulation
   connect(m_menu_bar, &MenuBar::Pause, this, &MainWindow::Pause);
@@ -858,6 +860,22 @@ void MainWindow::OpenCacheFolder()
   std::string path = File::GetUserPath(D_CACHE_IDX);
 
   QUrl url = QUrl::fromLocalFile(QString::fromStdString(path));
+  QDesktopServices::openUrl(url);
+}
+
+void MainWindow::OpenScreenshotsFolder()
+{
+  const std::string path = File::GetUserPath(D_SCREENSHOTS_IDX);
+
+  const QUrl url = QUrl::fromLocalFile(QString::fromStdString(path));
+  QDesktopServices::openUrl(url);
+}
+
+void MainWindow::OpenStateSavesFolder()
+{
+  const std::string path = File::GetUserPath(D_STATESAVES_IDX);
+
+  const QUrl url = QUrl::fromLocalFile(QString::fromStdString(path));
   QDesktopServices::openUrl(url);
 }
 
