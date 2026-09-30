@@ -531,7 +531,10 @@ MotionPlus::DataFormat::Data MotionPlus::GetGyroscopeData(const Common::Vec3& an
   DataFormat::Data result;
   for (size_t i = 0; i != angular_velocity.data.size(); ++i)
   {
-    const float rad_per_sec = angular_velocity.data[i];
+    const float input_rad_per_sec = angular_velocity.data[i];
+    // Host motion sources can occasionally report NaN/Inf during device reconnects or sensor
+    // initialization. Real MotionPlus hardware always returns finite 14-bit values.
+    const float rad_per_sec = std::isfinite(input_rad_per_sec) ? input_rad_per_sec : 0.0f;
 
     // Slow (high precision) scaling can be used if it fits in the sensor range.
     const bool is_slow = std::abs(rad_per_sec) < SLOW_MAX_RAD_PER_SEC;
