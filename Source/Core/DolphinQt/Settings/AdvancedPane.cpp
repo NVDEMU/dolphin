@@ -171,6 +171,22 @@ void AdvancedPane::CreateLayout()
     m_cpu_clock_override_slider->setValue(99);
   });
 
+  auto* const cpu_125 = new QPushButton(tr("125%"));
+  auto* const cpu_150 = new QPushButton(tr("150%"));
+  auto* const cpu_200 = new QPushButton(tr("200%"));
+  cpu_clock_override_slider_layout->addWidget(cpu_125);
+  cpu_clock_override_slider_layout->addWidget(cpu_150);
+  cpu_clock_override_slider_layout->addWidget(cpu_200);
+  connect(cpu_125, &QPushButton::clicked, this, [this] {
+    m_cpu_clock_override_slider->setValue(124);
+  });
+  connect(cpu_150, &QPushButton::clicked, this, [this] {
+    m_cpu_clock_override_slider->setValue(149);
+  });
+  connect(cpu_200, &QPushButton::clicked, this, [this] {
+    m_cpu_clock_override_slider->setValue(199);
+  });
+
   std::function<void()> cpu_text = [this]() {
     const float multi = Config::Get(Config::MAIN_OVERCLOCK);
     const int percent = static_cast<int>(std::round(multi * 100.f));
